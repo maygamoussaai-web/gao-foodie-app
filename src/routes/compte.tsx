@@ -114,13 +114,13 @@ function Compte() {
           <User className="h-4 w-4 text-muted-foreground" />
           Mes informations
         </h2>
-        <Field label="Prénom" htmlFor="prenom">
+        <Field label="Prénom">
           <Input id="prenom" value={prenom} onChange={(event) => setPrenom(event.target.value)} />
         </Field>
-        <Field label="Nom" htmlFor="nom">
+        <Field label="Nom">
           <Input id="nom" value={nom} onChange={(event) => setNom(event.target.value)} />
         </Field>
-        <Field label="Numéro de téléphone" htmlFor="numero">
+        <Field label="Numéro de téléphone">
           <Input
             id="numero"
             inputMode="tel"

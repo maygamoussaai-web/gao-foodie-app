@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BienvenueRouteImport } from './routes/bienvenue'
 import { Route as CommandesRouteImport } from './routes/commandes'
+import { Route as CompteRouteImport } from './routes/compte'
 import { Route as ConditionsRouteImport } from './routes/conditions'
 import { Route as ConnexionRouteImport } from './routes/connexion'
 import { Route as InscriptionRouteImport } from './routes/inscription'
@@ -31,6 +32,11 @@ const BienvenueRoute = BienvenueRouteImport.update({
 const CommandesRoute = CommandesRouteImport.update({
   id: '/commandes',
   path: '/commandes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompteRoute = CompteRouteImport.update({
+  id: '/compte',
+  path: '/compte',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConditionsRoute = ConditionsRouteImport.update({
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/bienvenue': typeof BienvenueRoute
   '/commandes': typeof CommandesRoute
+  '/compte': typeof CompteRoute
   '/conditions': typeof ConditionsRoute
   '/connexion': typeof ConnexionRoute
   '/inscription': typeof InscriptionRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/bienvenue': typeof BienvenueRoute
   '/commandes': typeof CommandesRoute
+  '/compte': typeof CompteRoute
   '/conditions': typeof ConditionsRoute
   '/connexion': typeof ConnexionRoute
   '/inscription': typeof InscriptionRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/bienvenue': typeof BienvenueRoute
   '/commandes': typeof CommandesRoute
+  '/compte': typeof CompteRoute
   '/conditions': typeof ConditionsRoute
   '/connexion': typeof ConnexionRoute
   '/inscription': typeof InscriptionRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/bienvenue'
     | '/commandes'
+    | '/compte'
     | '/conditions'
     | '/connexion'
     | '/inscription'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/bienvenue'
     | '/commandes'
+    | '/compte'
     | '/conditions'
     | '/connexion'
     | '/inscription'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/bienvenue'
     | '/commandes'
+    | '/compte'
     | '/conditions'
     | '/connexion'
     | '/inscription'
@@ -127,6 +139,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BienvenueRoute: typeof BienvenueRoute
   CommandesRoute: typeof CommandesRoute
+  CompteRoute: typeof CompteRoute
   ConditionsRoute: typeof ConditionsRoute
   ConnexionRoute: typeof ConnexionRoute
   InscriptionRoute: typeof InscriptionRoute
@@ -155,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/commandes'
       fullPath: '/commandes'
       preLoaderRoute: typeof CommandesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compte': {
+      id: '/compte'
+      path: '/compte'
+      fullPath: '/compte'
+      preLoaderRoute: typeof CompteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/conditions': {
@@ -199,6 +219,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BienvenueRoute: BienvenueRoute,
   CommandesRoute: CommandesRoute,
+  CompteRoute: CompteRoute,
   ConditionsRoute: ConditionsRoute,
   ConnexionRoute: ConnexionRoute,
   InscriptionRoute: InscriptionRoute,

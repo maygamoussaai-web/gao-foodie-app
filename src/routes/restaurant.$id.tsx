@@ -178,6 +178,7 @@ function PageRestaurant() {
 
       {selection ? (
         <SelecteurQuantite
+          type={plats.some((item) => item.id === selection.id) ? "plat" : "boisson"}
           article={selection}
           restaurant={restaurant}
           onClose={() => setSelection(null)}
@@ -234,10 +235,12 @@ function EnTeteRestaurant({ restaurant }: { restaurant: Restaurant }) {
 }
 
 function SelecteurQuantite({
+  type,
   article,
   restaurant,
   onClose,
 }: {
+  type: "plat" | "boisson";
   article: Article;
   restaurant: Restaurant;
   onClose: () => void;
@@ -318,7 +321,7 @@ function SelecteurQuantite({
           className="mt-4"
           onClick={() => {
             add({
-              type_article: "ingredients" in article && article.ingredients !== undefined ? "plat" : "plat",
+              type_article: type,
               article_id: article.id,
               nom: article.nom,
               prix: article.prix,

@@ -13,19 +13,34 @@ export function readSessionToken(): string | null {
   return value.length > 0 ? decodeURIComponent(value) : null;
 }
 
+/**
+ * L'app est affichée dans une iframe (aperçu Lovable, PWA embarquée) : un
+ * cookie SameSite=Lax n'y est jamais renvoyé. On pose donc SameSite=None;Secure
+ * dès que la requête est en HTTPS, et on retombe sur Lax en HTTP local.
+ */
+function cookieAttributes(): string {
+  const proto =
+    getRequestHeader("x-forwarded-proto") ??
+    (getRequestHeader("origin") ?? getRequestHeader("referer") ?? "").split(":")[0] ??
+    "";
+  const https = proto.startsWith("https");
+  return https ? "SameSite=None; Secure" : "SameSite=Lax";
+}
+
 export function writeSessionCookie(token: string, maxAge = NINETY_DAYS) {
   setResponseHeader(
     "set-cookie",
-    `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=${maxAge}`,
+    `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; ${cookieAttributes()}; Max-Age=${maxAge}`,
   );
 }
 
 export function clearSessionCookie() {
   setResponseHeader(
     "set-cookie",
-    `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=0`,
+    `${SESSION_COOKIE}=; Path=/; HttpOnly; ${cookieAttributes()}; Max-Age=0`,
   );
 }
+
 
 export function normalizeNumero(numero: string): string {
   return numero.replace(/[\s.\-()]/g, "");

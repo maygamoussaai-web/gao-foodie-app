@@ -36,10 +36,10 @@ export function AppShell({
   back,
 }: {
   children: React.ReactNode;
-  title?: string;
-  subtitle?: string;
-  right?: React.ReactNode;
-  back?: React.ReactNode;
+  title?: string | undefined;
+  subtitle?: string | undefined;
+  right?: React.ReactNode | undefined;
+  back?: React.ReactNode | undefined;
 }) {
   return (
     <div className="min-h-screen">

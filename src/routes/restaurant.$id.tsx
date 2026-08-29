@@ -11,7 +11,7 @@ import { fcfa } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import type { Article, Restaurant } from "@/lib/types";
 
-type Search = { article?: string };
+type Search = { article?: string | undefined };
 
 export const Route = createFileRoute("/restaurant/$id")({
   validateSearch: (search: Record<string, unknown>): Search => ({

@@ -116,8 +116,8 @@ export function Stars({
   size = 13,
 }: {
   note: number | null | undefined;
-  count?: number | null;
-  size?: number;
+  count?: number | null | undefined;
+  size?: number | undefined;
 }) {
   const value = Number(note ?? 0);
   return (
@@ -154,7 +154,7 @@ export function StarPicker({
 }: {
   value: number;
   onSelect: (note: number) => void;
-  disabled?: boolean;
+  disabled?: boolean | undefined;
 }) {
   return (
     <div className="flex items-center gap-1">
@@ -194,7 +194,7 @@ export function EmptyState({
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   description: string;
-  action?: React.ReactNode;
+  action?: React.ReactNode | undefined;
 }) {
   return (
     <div className="animate-rise flex flex-col items-center px-6 py-14 text-center">

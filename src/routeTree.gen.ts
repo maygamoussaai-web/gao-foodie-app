@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BienvenueRouteImport } from './routes/bienvenue'
+import { Route as ConnexionRouteImport } from './routes/connexion'
 import { Route as InscriptionRouteImport } from './routes/inscription'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,6 +24,11 @@ const BienvenueRoute = BienvenueRouteImport.update({
   path: '/bienvenue',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConnexionRoute = ConnexionRouteImport.update({
+  id: '/connexion',
+  path: '/connexion',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InscriptionRoute = InscriptionRouteImport.update({
   id: '/inscription',
   path: '/inscription',
@@ -32,30 +38,34 @@ const InscriptionRoute = InscriptionRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/bienvenue': typeof BienvenueRoute
+  '/connexion': typeof ConnexionRoute
   '/inscription': typeof InscriptionRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/bienvenue': typeof BienvenueRoute
+  '/connexion': typeof ConnexionRoute
   '/inscription': typeof InscriptionRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/bienvenue': typeof BienvenueRoute
+  '/connexion': typeof ConnexionRoute
   '/inscription': typeof InscriptionRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/bienvenue' | '/inscription'
+  fullPaths: '/' | '/bienvenue' | '/connexion' | '/inscription'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/bienvenue' | '/inscription'
-  id: '__root__' | '/' | '/bienvenue' | '/inscription'
+  to: '/' | '/bienvenue' | '/connexion' | '/inscription'
+  id: '__root__' | '/' | '/bienvenue' | '/connexion' | '/inscription'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BienvenueRoute: typeof BienvenueRoute
+  ConnexionRoute: typeof ConnexionRoute
   InscriptionRoute: typeof InscriptionRoute
 }
 
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BienvenueRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/connexion': {
+      id: '/connexion'
+      path: '/connexion'
+      fullPath: '/connexion'
+      preLoaderRoute: typeof ConnexionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/inscription': {
       id: '/inscription'
       path: '/inscription'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BienvenueRoute: BienvenueRoute,
+  ConnexionRoute: ConnexionRoute,
   InscriptionRoute: InscriptionRoute,
 }
 export const routeTree = rootRouteImport

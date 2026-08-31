@@ -6,6 +6,10 @@ export const SESSION_COOKIE = "gf_session";
 const NINETY_DAYS = 60 * 60 * 24 * 90;
 
 export function readSessionToken(): string | null {
+  // Repli sur l'en-tête : dans un aperçu en iframe, les cookies tiers peuvent
+  // être bloqués par le navigateur. Le jeton est alors porté par la requête.
+  const header = getRequestHeader("x-gf-session");
+  if (header && header.trim().length > 0) return header.trim();
   const cookie = getRequestHeader("cookie") ?? "";
   const match = cookie.split(";").find((part) => part.trim().startsWith(`${SESSION_COOKIE}=`));
   if (!match) return null;
@@ -47,7 +51,7 @@ export function normalizeNumero(numero: string): string {
 }
 
 /** Crée une session de 90 jours et pose le cookie httpOnly. */
-export async function startSession(clientId: string): Promise<void> {
+export async function startSession(clientId: string): Promise<string> {
   const db = getDb();
   const token = newSessionToken();
   const expires = new Date(Date.now() + NINETY_DAYS * 1000).toISOString();
@@ -56,6 +60,7 @@ export async function startSession(clientId: string): Promise<void> {
     .insert({ client_id: clientId, token, expires_at: expires });
   if (error) throw new Error("Impossible d'ouvrir la session.");
   writeSessionCookie(token);
+  return token;
 }
 
 /** Retourne le client authentifié, avec rotation du token si expiration proche. */

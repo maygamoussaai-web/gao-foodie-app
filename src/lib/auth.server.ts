@@ -64,7 +64,7 @@ export async function startSession(clientId: string): Promise<string> {
 }
 
 /** Retourne le client authentifié, avec rotation du token si expiration proche. */
-export async function getSessionClient(): Promise<Client | null> {
+export async function getSessionClient(): Promise<(Client & { token: string }) | null> {
   const token = readSessionToken();
   if (!token) return null;
   const db = getDb();
@@ -99,10 +99,13 @@ export async function getSessionClient(): Promise<Client | null> {
         expires_at: new Date(Date.now() + NINETY_DAYS * 1000).toISOString(),
       })
       .eq("id", session.id);
-    if (!error) writeSessionCookie(fresh);
+    if (!error) {
+      writeSessionCookie(fresh);
+      return { ...(client as Client), token: fresh };
+    }
   }
 
-  return client as Client;
+  return { ...(client as Client), token };
 }
 
 export async function requireSessionClient(): Promise<Client> {

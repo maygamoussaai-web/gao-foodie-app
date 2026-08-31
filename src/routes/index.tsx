@@ -134,20 +134,20 @@ function Vitrine() {
           <Link
             to="/compte"
             aria-label="Mon compte"
-            className="tap tap-active flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary text-[13px] font-black text-secondary-foreground ring-1 ring-border hover:shadow-soft"
+            className="tap tap-active gradient-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[13px] font-black text-primary-foreground shadow-glow hover:brightness-105"
           >
             {initials(`${session.data?.prenom ?? ""} ${session.data?.nom ?? ""}`.trim()) || "GF"}
           </Link>
         </div>
 
-        <div className="surface-card animate-rise mt-4 flex items-center gap-3 overflow-hidden p-3.5">
+        <div className="glass-card gradient-surface animate-rise mt-4 flex items-start gap-3 overflow-hidden p-3.5">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-success/12 text-success">
             <Bike className="h-5 w-5" />
           </span>
           <div className="min-w-0">
             <p className="text-[13px] leading-tight font-bold">Paiement à la livraison</p>
-            <p className="truncate text-[12px] text-muted-foreground">
-              Vous payez en espèces à la réception. Aucun risque.
+            <p className="text-[12px] leading-snug text-muted-foreground">
+              Vous payez en espèces à la réception. Aucun risque d'arnaque.
             </p>
           </div>
         </div>
@@ -156,7 +156,7 @@ function Vitrine() {
       <section className="mt-6">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="inline-flex items-center gap-1.5 text-[13px] font-bold tracking-wide uppercase">
-            <Sparkles className="h-3.5 w-3.5 text-sand" />
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
             Promotions
           </h2>
           {promotions.data && promotions.data.length > 0 ? (
@@ -216,7 +216,7 @@ function Vitrine() {
                 className={cn(
                   "tap tap-active inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold",
                   actif
-                    ? "border-primary bg-primary text-primary-foreground shadow-soft"
+                    ? "gradient-primary border-transparent text-primary-foreground shadow-glow"
                     : "border-border bg-card text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -274,7 +274,7 @@ function CarteRestaurant({ restaurant, index }: { restaurant: Restaurant; index:
       to="/restaurant/$id"
       params={{ id: restaurant.id }}
       style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
-      className="surface-card tap tap-active animate-rise group flex items-center gap-3.5 p-3 hover:border-primary/30 hover:shadow-lift"
+      className="surface-card tap tap-active animate-rise group flex items-center gap-3.5 p-3 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lift"
     >
       <div className="relative shrink-0">
         {restaurant.logo_url ? (
@@ -288,8 +288,8 @@ function CarteRestaurant({ restaurant, index }: { restaurant: Restaurant; index:
             )}
           />
         ) : (
-          <span className="flex h-[68px] w-[68px] items-center justify-center rounded-2xl bg-secondary ring-1 ring-border">
-            <Store className="h-6 w-6 text-secondary-foreground" />
+          <span className="gradient-surface flex h-[68px] w-[68px] items-center justify-center rounded-2xl ring-1 ring-border">
+            <Store className="h-6 w-6 text-primary" />
           </span>
         )}
         <span

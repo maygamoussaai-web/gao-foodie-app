@@ -76,6 +76,7 @@ function Compte() {
   const deconnexion = useMutation({
     mutationFn: () => logoutFn(),
     onSuccess: async () => {
+      clearSessionToken();
       await queryClient.invalidateQueries({ queryKey: ["session"] });
       navigate({ to: "/connexion" });
     },

@@ -8,6 +8,7 @@ import { PinField } from "@/components/gf/PinField";
 import { Button, Field, Input } from "@/components/gf/ui";
 import { registerFn } from "@/lib/auth.functions";
 import { useInvalidateSession } from "@/lib/session";
+import { setSessionToken } from "@/lib/session-token";
 
 export const Route = createFileRoute("/inscription")({
   head: () => ({
@@ -41,6 +42,7 @@ function Inscription() {
   const mutation = useMutation({
     mutationFn: () => registerFn({ data: { prenom, nom, numero, pin } }),
     onSuccess: async (client) => {
+      setSessionToken(client.token);
       await invalidateSession();
       await router.invalidate();
       toast.success(`Bienvenue ${client.prenom} !`);

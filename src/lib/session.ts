@@ -16,7 +16,7 @@ export const sessionQuery = {
 };
 
 export function useSession() {
-  return useQuery<Client | null>(sessionQuery);
+  return useQuery<(Client & { token?: string }) | null>(sessionQuery);
 }
 
 /** Redirige vers l'authentification si aucune session valide. */

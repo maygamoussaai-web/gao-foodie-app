@@ -12,7 +12,7 @@ import { getDb, hashPin, verifyPin } from "./supabase.server";
 import type { Client } from "./types";
 
 export const meFn = createServerFn({ method: "GET" }).handler(
-  async (): Promise<Client | null> => {
+  async (): Promise<(Client & { token: string }) | null> => {
     try {
       return await getSessionClient();
     } catch {

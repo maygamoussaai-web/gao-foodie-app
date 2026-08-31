@@ -8,7 +8,8 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: "bg-primary text-primary-foreground shadow-soft hover:bg-primary/92",
+        primary:
+          "gradient-primary text-primary-foreground shadow-glow hover:brightness-[1.06] active:brightness-95",
         soft: "bg-secondary text-secondary-foreground hover:bg-secondary/75",
         outline: "border border-border bg-card text-foreground hover:bg-muted",
         ghost: "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -198,8 +199,8 @@ export function EmptyState({
 }) {
   return (
     <div className="animate-rise flex flex-col items-center px-6 py-14 text-center">
-      <span className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary">
-        <Icon className="h-7 w-7 text-secondary-foreground" />
+      <span className="animate-float gradient-primary mb-4 flex h-16 w-16 items-center justify-center rounded-2xl text-primary-foreground shadow-glow">
+        <Icon className="h-7 w-7" />
       </span>
       <h3 className="text-base font-bold text-foreground">{title}</h3>
       <p className="mt-1.5 max-w-xs text-sm text-muted-foreground">{description}</p>

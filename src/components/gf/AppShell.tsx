@@ -15,6 +15,7 @@ export function AskiaBackdrop() {
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
       <div className="absolute inset-0 bg-background" />
+      <div className="gradient-hero absolute inset-x-0 top-0 h-[420px]" />
       <img
         src={askia}
         alt=""
@@ -23,7 +24,8 @@ export function AskiaBackdrop() {
         loading="lazy"
         className="absolute -right-16 bottom-8 w-[78vw] max-w-[520px] opacity-[var(--askia-opacity)] dark:invert"
       />
-      <div className="absolute -top-32 -left-24 h-72 w-72 rounded-full bg-secondary/50 blur-3xl dark:bg-primary/10" />
+      <div className="animate-glow absolute -top-28 -left-24 h-72 w-72 rounded-full bg-primary/25 blur-3xl" />
+      <div className="animate-glow absolute top-40 -right-20 h-64 w-64 rounded-full bg-primary-glow/20 blur-3xl [animation-delay:2s]" />
     </div>
   );
 }
@@ -45,11 +47,15 @@ export function AppShell({
     <div className="min-h-screen">
       <AskiaBackdrop />
       {title ? (
-        <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-xl">
+        <header className="sticky top-0 z-30 border-b border-border/70 bg-background/80 backdrop-blur-xl">
+          <span
+            aria-hidden
+            className="gradient-primary absolute inset-x-0 bottom-0 h-px opacity-60"
+          />
           <div className="mx-auto flex h-16 max-w-3xl items-center gap-3 px-4">
             {back}
             <div className="min-w-0 flex-1">
-              <h1 className="truncate text-[19px] leading-tight font-extrabold">{title}</h1>
+              <h1 className="truncate text-[19px] leading-tight font-extrabold tracking-tight">{title}</h1>
               {subtitle ? (
                 <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
               ) : null}
@@ -80,6 +86,7 @@ function BottomNav() {
               to={tab.to}
               className={cn(
                 "tap tap-active relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-semibold",
+                active && "[&>span:first-child]:drop-shadow-[0_4px_10px_var(--primary)]",
                 active ? "text-primary" : "text-muted-foreground",
               )}
             >
@@ -94,7 +101,7 @@ function BottomNav() {
               {tab.label}
               <span
                 className={cn(
-                  "absolute top-0 h-0.5 w-8 rounded-full bg-primary tap",
+                  "gradient-primary absolute top-0 h-1 w-9 rounded-full tap",
                   active ? "opacity-100" : "opacity-0",
                 )}
               />

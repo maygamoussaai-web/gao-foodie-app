@@ -9,6 +9,7 @@ import { Button, Field, Input } from "@/components/gf/ui";
 import { loginFn, requestPinResetFn, resetPinFn } from "@/lib/auth.functions";
 import { whatsappLink } from "@/lib/constants";
 import { useInvalidateSession } from "@/lib/session";
+import { setSessionToken } from "@/lib/session-token";
 
 export const Route = createFileRoute("/connexion")({
   head: () => ({
@@ -38,6 +39,7 @@ function Connexion() {
   const login = useMutation({
     mutationFn: () => loginFn({ data: { numero, pin } }),
     onSuccess: async (client) => {
+      setSessionToken(client.token);
       await invalidateSession();
       await router.invalidate();
       toast.success(`Content de vous revoir, ${client.prenom} !`);
@@ -64,7 +66,8 @@ function Connexion() {
 
   const applyReset = useMutation({
     mutationFn: () => resetPinFn({ data: { numero, code, pin: nouveauPin } }),
-    onSuccess: async () => {
+    onSuccess: async (client) => {
+      setSessionToken(client.token);
       await invalidateSession();
       await router.invalidate();
       toast.success("Nouveau code PIN enregistré.");

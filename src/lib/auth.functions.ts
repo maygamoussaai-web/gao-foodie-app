@@ -12,7 +12,7 @@ import { getDb, hashPin, verifyPin } from "./supabase.server";
 import type { Client } from "./types";
 
 export const meFn = createServerFn({ method: "GET" }).handler(
-  async (): Promise<Client | null> => {
+  async (): Promise<(Client & { token: string }) | null> => {
     try {
       return await getSessionClient();
     } catch {
@@ -54,8 +54,8 @@ export const registerFn = createServerFn({ method: "POST" })
       .single();
     if (error || !created) throw new Error("Inscription impossible pour le moment.");
 
-    await startSession(created.id as string);
-    return created as Client;
+    const token = await startSession(created.id as string);
+    return { ...(created as Client), token };
   });
 
 export const loginFn = createServerFn({ method: "POST" })
@@ -78,13 +78,14 @@ export const loginFn = createServerFn({ method: "POST" })
     const ok = await verifyPin(data.pin, client.code_pin_hash as string);
     if (!ok) throw new Error("Numéro ou code PIN incorrect.");
 
-    await startSession(client.id as string);
+    const token = await startSession(client.id as string);
     return {
       id: client.id,
       prenom: client.prenom,
       nom: client.nom,
       numero: client.numero,
-    } as Client;
+      token,
+    } as Client & { token: string };
   });
 
 export const logoutFn = createServerFn({ method: "POST" }).handler(async () => {
@@ -162,13 +163,14 @@ export const resetPinFn = createServerFn({ method: "POST" })
       .update({ code_pin_hash: await hashPin(data.pin) })
       .eq("id", client.id);
     await db.from("codes_reset_client").update({ utilise: true }).eq("id", reset.id);
-    await startSession(client.id as string);
+    const token = await startSession(client.id as string);
     return {
       id: client.id,
       prenom: client.prenom,
       nom: client.nom,
       numero: client.numero,
-    } as Client;
+      token,
+    } as Client & { token: string };
   });
 
 export const updateProfileFn = createServerFn({ method: "POST" })

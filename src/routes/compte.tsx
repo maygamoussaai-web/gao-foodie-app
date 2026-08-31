@@ -10,6 +10,7 @@ import { changePinFn, logoutFn, updateProfileFn } from "@/lib/auth.functions";
 import { ADMIN_PHONE_DISPLAY, whatsappLink } from "@/lib/constants";
 import { initials } from "@/lib/format";
 import { useSession } from "@/lib/session";
+import { clearSessionToken } from "@/lib/session-token";
 
 export const Route = createFileRoute("/compte")({
   head: () => ({
@@ -75,6 +76,7 @@ function Compte() {
   const deconnexion = useMutation({
     mutationFn: () => logoutFn(),
     onSuccess: async () => {
+      clearSessionToken();
       await queryClient.invalidateQueries({ queryKey: ["session"] });
       navigate({ to: "/connexion" });
     },

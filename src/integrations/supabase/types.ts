@@ -597,6 +597,27 @@ export type Database = {
         }
         Relationships: []
       }
+      sessions_admin: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token?: string
+        }
+        Relationships: []
+      }
       sessions_client: {
         Row: {
           client_id: string

@@ -1,6 +1,16 @@
 import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/react-start";
 
 import { renderErrorPage } from "./lib/error-page";
+import { getSessionToken } from "./lib/session-token";
+
+// Ajoute le jeton de session aux appels serveur quand le cookie httpOnly ne
+// peut pas être renvoyé (aperçu en iframe / cookies tiers bloqués).
+const sessionHeaderMiddleware = createMiddleware({ type: "function" }).client(
+  async ({ next }) => {
+    const token = getSessionToken();
+    return token ? next({ headers: { "x-gf-session": token } }) : next();
+  },
+);
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
@@ -26,4 +36,5 @@ const csrfMiddleware = createCsrfMiddleware({
 
 export const startInstance = createStart(() => ({
   requestMiddleware: [errorMiddleware, csrfMiddleware],
+  functionMiddleware: [sessionHeaderMiddleware],
 }));

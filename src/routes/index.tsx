@@ -116,32 +116,32 @@ function Vitrine() {
   const chargement = restaurants.isLoading || session.isLoading;
 
   return (
-    <AppShell>
+    <AppShell ambiance="accueil">
       <header className="pt-[calc(env(safe-area-inset-top)+0.25rem)]">
-        <div className="flex items-center gap-3">
+        <div className="animate-slide-up flex items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className="inline-flex items-center gap-1 text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-              <MapPin className="h-3 w-3" />
+              <MapPin className="h-3 w-3 animate-float" />
               Gao, Mali
             </p>
             <h1 className="mt-1 truncate text-[26px] leading-tight font-black">
               {salutation()}
               {session.data?.prenom ? (
-                <span className="text-primary"> {session.data.prenom}</span>
+                <span className="text-gradient-animated"> {session.data.prenom}</span>
               ) : null}
             </h1>
           </div>
           <Link
             to="/compte"
             aria-label="Mon compte"
-            className="tap tap-active gradient-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[13px] font-black text-primary-foreground shadow-glow hover:brightness-105"
+            className="press gradient-primary animate-ring flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[13px] font-black text-primary-foreground shadow-glow"
           >
             {initials(`${session.data?.prenom ?? ""} ${session.data?.nom ?? ""}`.trim()) || "GF"}
           </Link>
         </div>
 
-        <div className="glass-card gradient-surface animate-rise mt-4 flex items-start gap-3 overflow-hidden p-3.5">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-success/12 text-success">
+        <div className="glass-card gradient-surface animate-slide-up press mt-4 flex items-start gap-3 overflow-hidden p-3.5 [animation-delay:80ms]">
+          <span className="animate-float flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-success/12 text-success">
             <Bike className="h-5 w-5" />
           </span>
           <div className="min-w-0">
@@ -152,6 +152,7 @@ function Vitrine() {
           </div>
         </div>
       </header>
+
 
       <section className="mt-6">
         <div className="mb-3 flex items-center justify-between">

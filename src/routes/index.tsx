@@ -205,7 +205,7 @@ function Vitrine() {
           ) : null}
         </div>
 
-        <div className="no-scrollbar -mx-4 mt-2.5 flex gap-2 overflow-x-auto px-4">
+        <div className="no-scrollbar stagger -mx-4 mt-2.5 flex gap-2 overflow-x-auto px-4">
           {FILTRES.map((item) => {
             const Icon = item.icon;
             const actif = filtre === item.id;
@@ -216,18 +216,24 @@ function Vitrine() {
                 onClick={() => setFiltre(item.id)}
                 aria-pressed={actif}
                 className={cn(
-                  "tap tap-active inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold",
+                  "press tap group inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold",
                   actif
-                    ? "gradient-primary border-transparent text-primary-foreground shadow-glow"
-                    : "border-border bg-card text-muted-foreground hover:text-foreground",
+                    ? "gradient-primary sheen border-transparent text-primary-foreground shadow-glow"
+                    : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
                 )}
               >
-                <Icon className="h-3.5 w-3.5" />
+                <Icon
+                  className={cn(
+                    "h-3.5 w-3.5 transition-transform duration-300 group-hover:rotate-12",
+                    actif && "animate-pop",
+                  )}
+                />
                 {item.label}
               </button>
             );
           })}
         </div>
+
       </div>
 
       <section className="mt-4 space-y-3">

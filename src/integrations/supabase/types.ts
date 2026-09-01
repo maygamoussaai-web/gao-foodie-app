@@ -694,6 +694,10 @@ export type Database = {
       }
     }
     Functions: {
+      admin_stats_restaurant: {
+        Args: { p_restaurant_id: string; p_token: string }
+        Returns: Json
+      }
       annuler_commandes_expirees: { Args: never; Returns: undefined }
       compter_annulations_jour: {
         Args: { p_restaurant_id: string }

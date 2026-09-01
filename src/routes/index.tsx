@@ -116,32 +116,32 @@ function Vitrine() {
   const chargement = restaurants.isLoading || session.isLoading;
 
   return (
-    <AppShell>
+    <AppShell ambiance="accueil">
       <header className="pt-[calc(env(safe-area-inset-top)+0.25rem)]">
-        <div className="flex items-center gap-3">
+        <div className="animate-slide-up flex items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className="inline-flex items-center gap-1 text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-              <MapPin className="h-3 w-3" />
+              <MapPin className="h-3 w-3 animate-float" />
               Gao, Mali
             </p>
             <h1 className="mt-1 truncate text-[26px] leading-tight font-black">
               {salutation()}
               {session.data?.prenom ? (
-                <span className="text-primary"> {session.data.prenom}</span>
+                <span className="text-gradient-animated"> {session.data.prenom}</span>
               ) : null}
             </h1>
           </div>
           <Link
             to="/compte"
             aria-label="Mon compte"
-            className="tap tap-active gradient-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[13px] font-black text-primary-foreground shadow-glow hover:brightness-105"
+            className="press gradient-primary animate-ring flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[13px] font-black text-primary-foreground shadow-glow"
           >
             {initials(`${session.data?.prenom ?? ""} ${session.data?.nom ?? ""}`.trim()) || "GF"}
           </Link>
         </div>
 
-        <div className="glass-card gradient-surface animate-rise mt-4 flex items-start gap-3 overflow-hidden p-3.5">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-success/12 text-success">
+        <div className="glass-card gradient-surface animate-slide-up press mt-4 flex items-start gap-3 overflow-hidden p-3.5 [animation-delay:80ms]">
+          <span className="animate-float flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-success/12 text-success">
             <Bike className="h-5 w-5" />
           </span>
           <div className="min-w-0">
@@ -153,11 +153,13 @@ function Vitrine() {
         </div>
       </header>
 
-      <section className="mt-6">
+
+      <section className="animate-slide-up mt-6 [animation-delay:150ms]">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="inline-flex items-center gap-1.5 text-[13px] font-bold tracking-wide uppercase">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <Sparkles className="animate-spin-slow h-3.5 w-3.5 text-primary" />
             Promotions
+
           </h2>
           {promotions.data && promotions.data.length > 0 ? (
             <span className="text-[11px] font-semibold text-muted-foreground">
@@ -203,7 +205,7 @@ function Vitrine() {
           ) : null}
         </div>
 
-        <div className="no-scrollbar -mx-4 mt-2.5 flex gap-2 overflow-x-auto px-4">
+        <div className="no-scrollbar stagger -mx-4 mt-2.5 flex gap-2 overflow-x-auto px-4">
           {FILTRES.map((item) => {
             const Icon = item.icon;
             const actif = filtre === item.id;
@@ -214,18 +216,24 @@ function Vitrine() {
                 onClick={() => setFiltre(item.id)}
                 aria-pressed={actif}
                 className={cn(
-                  "tap tap-active inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold",
+                  "press tap group inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold",
                   actif
-                    ? "gradient-primary border-transparent text-primary-foreground shadow-glow"
-                    : "border-border bg-card text-muted-foreground hover:text-foreground",
+                    ? "gradient-primary sheen border-transparent text-primary-foreground shadow-glow"
+                    : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
                 )}
               >
-                <Icon className="h-3.5 w-3.5" />
+                <Icon
+                  className={cn(
+                    "h-3.5 w-3.5 transition-transform duration-300 group-hover:rotate-12",
+                    actif && "animate-pop",
+                  )}
+                />
                 {item.label}
               </button>
             );
           })}
         </div>
+
       </div>
 
       <section className="mt-4 space-y-3">

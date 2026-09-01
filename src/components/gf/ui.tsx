@@ -159,7 +159,7 @@ export function StarPicker({
   disabled?: boolean | undefined;
 }) {
   return (
-    <div className="flex items-center gap-1">
+    <div className="group/stars flex items-center gap-1">
       {[1, 2, 3, 4, 5].map((note) => (
         <button
           key={note}
@@ -167,9 +167,17 @@ export function StarPicker({
           disabled={disabled}
           onClick={() => onSelect(note)}
           aria-label={`Noter ${note} sur 5`}
-          className="tap tap-active rounded-md p-0.5 disabled:cursor-default"
+          className="tap rounded-md p-0.5 transition-transform duration-200 hover:-translate-y-0.5 hover:scale-125 active:scale-95 disabled:cursor-default"
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" className={note <= value ? "text-sand" : "text-border"}>
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            className={cn(
+              "transition-colors duration-200",
+              note <= value ? "text-sand" : "text-border",
+            )}
+          >
             <path
               d="M12 2.6l2.9 5.9 6.5.95-4.7 4.58 1.1 6.47L12 17.45 6.2 20.5l1.1-6.47L2.6 9.45l6.5-.95L12 2.6z"
               fill={note <= value ? "currentColor" : "none"}
@@ -182,6 +190,7 @@ export function StarPicker({
     </div>
   );
 }
+
 
 export function Skeleton({ className }: { className?: string }) {
   return <div className={cn("skeleton", className)} />;

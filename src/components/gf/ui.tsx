@@ -4,14 +4,14 @@ import { forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "tap tap-active inline-flex items-center justify-center gap-2 rounded-xl font-semibold whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-55",
+  "sheen press tap inline-flex items-center justify-center gap-2 rounded-xl font-semibold whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-55",
   {
     variants: {
       variant: {
         primary:
-          "gradient-primary text-primary-foreground shadow-glow hover:brightness-[1.06] active:brightness-95",
+          "gradient-primary text-primary-foreground shadow-glow hover:brightness-[1.07] hover:shadow-lift active:brightness-95",
         soft: "bg-secondary text-secondary-foreground hover:bg-secondary/75",
-        outline: "border border-border bg-card text-foreground hover:bg-muted",
+        outline: "border border-border bg-card text-foreground hover:border-primary/50 hover:bg-muted",
         ghost: "text-muted-foreground hover:bg-muted hover:text-foreground",
         danger: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         sand: "bg-sand text-sand-foreground hover:bg-sand/90",
@@ -27,6 +27,7 @@ const buttonVariants = cva(
     defaultVariants: { variant: "primary", size: "md", block: false },
   },
 );
+
 
 export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> &
   VariantProps<typeof buttonVariants> & { loading?: boolean };

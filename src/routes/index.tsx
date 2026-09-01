@@ -154,11 +154,12 @@ function Vitrine() {
       </header>
 
 
-      <section className="mt-6">
+      <section className="animate-slide-up mt-6 [animation-delay:150ms]">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="inline-flex items-center gap-1.5 text-[13px] font-bold tracking-wide uppercase">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <Sparkles className="animate-spin-slow h-3.5 w-3.5 text-primary" />
             Promotions
+
           </h2>
           {promotions.data && promotions.data.length > 0 ? (
             <span className="text-[11px] font-semibold text-muted-foreground">

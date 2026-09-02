@@ -1,8 +1,47 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronRight, Sparkles, X } from "lucide-react";
+import { ChevronRight, PlayCircle, Sparkles, UtensilsCrossed, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Promotion } from "@/lib/types";
 import { Button, Skeleton } from "./ui";
+
+/** Libellé et cible du bouton d'action d'une promotion. */
+function actionPromotion(promotion: Promotion) {
+  const articleId = promotion.plat_id ?? promotion.boisson_id ?? null;
+  return {
+    articleId,
+    label: promotion.plat_id
+      ? "Voir le plat"
+      : promotion.boisson_id
+        ? "Voir la boisson"
+        : "Voir le menu",
+  };
+}
+
+function PromoAction({
+  promotion,
+  onNavigate,
+  variant = "primary",
+}: {
+  promotion: Promotion;
+  onNavigate?: () => void;
+  variant?: "primary" | "soft";
+}) {
+  const { articleId, label } = actionPromotion(promotion);
+  return (
+    <Link
+      to="/restaurant/$id"
+      params={{ id: promotion.restaurant_id }}
+      search={articleId ? { article: articleId } : {}}
+      onClick={onNavigate}
+      className="block"
+    >
+      <Button block size={variant === "primary" ? "lg" : "md"} variant={variant === "primary" ? "primary" : "soft"}>
+        {label}
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </Link>
+  );
+}
 
 export function StoriesBar({
   promotions,
@@ -39,8 +78,15 @@ export function StoriesBar({
             className="tap tap-active flex w-[68px] shrink-0 flex-col items-center gap-1.5"
           >
             <span className="rounded-full bg-gradient-to-tr from-primary to-sand p-[2.5px]">
-              <span className="block rounded-full bg-background p-[2px]">
-                {promotion.restaurant_logo ? (
+              <span className="relative block rounded-full bg-background p-[2px]">
+                {promotion.type_media === "image" ? (
+                  <img
+                    src={promotion.media_url}
+                    alt={promotion.description ?? promotion.restaurant_nom}
+                    className="h-14 w-14 rounded-full object-cover"
+                    loading="lazy"
+                  />
+                ) : promotion.restaurant_logo ? (
                   <img
                     src={promotion.restaurant_logo}
                     alt={promotion.restaurant_nom}
@@ -52,6 +98,9 @@ export function StoriesBar({
                     <Sparkles className="h-5 w-5" />
                   </span>
                 )}
+                {promotion.type_media === "video" ? (
+                  <PlayCircle className="absolute right-0 bottom-0 h-5 w-5 rounded-full bg-background text-primary" />
+                ) : null}
               </span>
             </span>
             <span className="w-full truncate text-center text-[11px] font-semibold text-muted-foreground">
@@ -69,6 +118,75 @@ export function StoriesBar({
         />
       ) : null}
     </>
+  );
+}
+
+/** Toutes les promotions visibles d'un coup, chacune avec son bouton d'action. */
+export function PromotionsGrid({
+  promotions,
+  loading,
+}: {
+  promotions: Promotion[];
+  loading?: boolean;
+}) {
+  if (loading) {
+    return (
+      <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
+        {[0, 1].map((index) => (
+          <Skeleton key={index} className="h-64 w-[78%] shrink-0 rounded-3xl" />
+        ))}
+      </div>
+    );
+  }
+  if (promotions.length === 0) return null;
+
+  return (
+    <div className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2">
+      {promotions.map((promotion, index) => (
+        <article
+          key={promotion.id}
+          className="surface-card animate-rise flex w-[80%] max-w-[320px] shrink-0 snap-start flex-col overflow-hidden p-0"
+          style={{ animationDelay: `${index * 60}ms` }}
+        >
+          <div className="relative aspect-[4/3] w-full bg-muted">
+            {promotion.type_media === "video" ? (
+              <video
+                src={promotion.media_url}
+                className="h-full w-full object-cover"
+                muted
+                loop
+                playsInline
+                autoPlay
+                preload="metadata"
+              />
+            ) : (
+              <img
+                src={promotion.media_url}
+                alt={promotion.description ?? `Promotion ${promotion.restaurant_nom}`}
+                className="h-full w-full object-cover"
+                loading="lazy"
+              />
+            )}
+            <span className="absolute top-2 left-2 inline-flex items-center gap-1.5 rounded-full bg-background/85 px-2.5 py-1 text-[11px] font-bold backdrop-blur">
+              {promotion.restaurant_logo ? (
+                <img src={promotion.restaurant_logo} alt="" className="h-4 w-4 rounded-full object-cover" />
+              ) : (
+                <UtensilsCrossed className="h-3.5 w-3.5 text-primary" />
+              )}
+              <span className="max-w-[130px] truncate">{promotion.restaurant_nom}</span>
+            </span>
+          </div>
+          <div className="flex flex-1 flex-col gap-3 p-3.5">
+            <p className="line-clamp-3 text-[13px] leading-relaxed text-muted-foreground">
+              {promotion.description ?? "Promotion en cours dans ce restaurant."}
+            </p>
+            <div className="mt-auto">
+              <PromoAction promotion={promotion} variant="soft" />
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
   );
 }
 
@@ -98,8 +216,6 @@ function StoryViewer({
       document.body.style.overflow = "";
     };
   }, [index, promotions.length, onClose, onIndexChange]);
-
-  const target = promotion.plat_id || promotion.boisson_id ? "Voir l'article" : "Voir le menu";
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[oklch(0.12_0.01_255)] animate-rise">
@@ -171,21 +287,7 @@ function StoryViewer({
         {promotion.description ? (
           <p className="text-[15px] leading-relaxed text-white/90">{promotion.description}</p>
         ) : null}
-        <Link
-          to="/restaurant/$id"
-          params={{ id: promotion.restaurant_id }}
-          search={
-            promotion.plat_id || promotion.boisson_id
-              ? { article: (promotion.plat_id ?? promotion.boisson_id)! }
-              : {}
-          }
-          onClick={onClose}
-        >
-          <Button block size="lg">
-            {target}
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </Link>
+        <PromoAction promotion={promotion} onNavigate={onClose} />
       </div>
     </div>
   );

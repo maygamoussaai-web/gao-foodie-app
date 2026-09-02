@@ -296,31 +296,85 @@ function ChoixLocalisation({
   onChange: (value: Localisation) => void;
 }) {
   const [enCours, setEnCours] = useState<"position" | "audio" | null>(null);
+  const [precision, setPrecision] = useState<number | null>(null);
   const [recording, setRecording] = useState(false);
+  const [secondes, setSecondes] = useState(0);
+  const [niveaux, setNiveaux] = useState<number[]>(() => Array.from({ length: 28 }, () => 0.08));
   const recorder = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
+  const watchId = useRef<number | null>(null);
+  const audioCtx = useRef<AudioContext | null>(null);
+  const raf = useRef<number | null>(null);
 
+  useEffect(
+    () => () => {
+      if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
+      if (raf.current !== null) cancelAnimationFrame(raf.current);
+      void audioCtx.current?.close();
+    },
+    [],
+  );
+
+  /**
+   * Position la plus précise possible : on ne se contente pas du premier point
+   * GPS (souvent issu du réseau, ±1 km). On observe la position en continu et
+   * on ne garde que le relevé le plus précis, jusqu'à atteindre 5 m ou 25 s.
+   */
   const partagerPosition = () => {
     if (!navigator.geolocation) {
       toast.error("La géolocalisation n'est pas disponible sur cet appareil.");
       return;
     }
+    if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
     setEnCours("position");
-    navigator.geolocation.getCurrentPosition(
+    setPrecision(null);
+
+    let meilleure: GeolocationPosition | null = null;
+    const stop = () => {
+      if (watchId.current !== null) {
+        navigator.geolocation.clearWatch(watchId.current);
+        watchId.current = null;
+      }
+      clearTimeout(limite);
+      setEnCours(null);
+      if (!meilleure) return;
+      const { latitude, longitude, accuracy } = meilleure.coords;
+      onChange({
+        methode: "position",
+        url: `https://maps.google.com/?q=${latitude.toFixed(7)},${longitude.toFixed(7)}`,
+      });
+      setPrecision(Math.round(accuracy));
+      toast.success(`Position enregistrée (précision ±${Math.round(accuracy)} m)`);
+    };
+
+    const limite = setTimeout(() => {
+      if (meilleure) stop();
+      else {
+        if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
+        watchId.current = null;
+        setEnCours(null);
+        toast.error("Signal GPS trop faible. Sortez à l'air libre ou envoyez un message vocal.");
+      }
+    }, 25_000);
+
+    watchId.current = navigator.geolocation.watchPosition(
       (position) => {
-        const { latitude, longitude } = position.coords;
-        onChange({
-          methode: "position",
-          url: `https://maps.google.com/?q=${latitude.toFixed(6)},${longitude.toFixed(6)}`,
-        });
-        setEnCours(null);
-        toast.success("Position enregistrée");
+        if (!meilleure || position.coords.accuracy < meilleure.coords.accuracy) {
+          meilleure = position;
+          setPrecision(Math.round(position.coords.accuracy));
+        }
+        if (meilleure.coords.accuracy <= 5) stop();
       },
-      () => {
-        setEnCours(null);
-        toast.error("Position refusée. Autorisez la localisation ou envoyez un message vocal.");
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
+          watchId.current = null;
+          clearTimeout(limite);
+          setEnCours(null);
+          toast.error("Position refusée. Autorisez la localisation ou envoyez un message vocal.");
+        }
       },
-      { enableHighAccuracy: true, timeout: 12_000 },
+      { enableHighAccuracy: true, timeout: 25_000, maximumAge: 0 },
     );
   };
 
@@ -329,16 +383,43 @@ function ChoixLocalisation({
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const media = new MediaRecorder(stream);
       chunks.current = [];
+
+      // Visualisation temps réel du niveau sonore.
+      const ctx = new AudioContext();
+      audioCtx.current = ctx;
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      ctx.createMediaStreamSource(stream).connect(analyser);
+      const buffer = new Uint8Array(analyser.frequencyBinCount);
+      const tick = () => {
+        analyser.getByteTimeDomainData(buffer);
+        let somme = 0;
+        for (const sample of buffer) somme += ((sample - 128) / 128) ** 2;
+        const niveau = Math.min(1, Math.sqrt(somme / buffer.length) * 4.5);
+        setNiveaux((current) => [...current.slice(1), Math.max(0.08, niveau)]);
+        raf.current = requestAnimationFrame(tick);
+      };
+      raf.current = requestAnimationFrame(tick);
+
+      const debut = Date.now();
+      const chrono = setInterval(() => setSecondes(Math.floor((Date.now() - debut) / 1000)), 250);
+
       media.ondataavailable = (event) => chunks.current.push(event.data);
       media.onstop = async () => {
+        clearInterval(chrono);
+        if (raf.current !== null) cancelAnimationFrame(raf.current);
+        raf.current = null;
+        void ctx.close();
+        audioCtx.current = null;
+        setNiveaux(Array.from({ length: 28 }, () => 0.08));
         stream.getTracks().forEach((track) => track.stop());
         setRecording(false);
         setEnCours("audio");
         try {
           const blob = new Blob(chunks.current, { type: media.mimeType || "audio/webm" });
-          const buffer = await blob.arrayBuffer();
+          const bytes = new Uint8Array(await blob.arrayBuffer());
           let binary = "";
-          new Uint8Array(buffer).forEach((byte) => {
+          bytes.forEach((byte) => {
             binary += String.fromCharCode(byte);
           });
           const { url } = await uploadAudioFn({
@@ -354,6 +435,7 @@ function ChoixLocalisation({
       };
       recorder.current = media;
       media.start();
+      setSecondes(0);
       setRecording(true);
     } catch {
       toast.error("Micro indisponible. Autorisez l'accès au microphone.");
@@ -371,14 +453,17 @@ function ChoixLocalisation({
         <button
           type="button"
           onClick={partagerPosition}
-          disabled={enCours !== null}
+          disabled={enCours !== null || recording}
           className={`tap tap-active flex w-full items-center gap-3 rounded-2xl border p-3 text-left ${
             value?.methode === "position" ? "border-primary bg-secondary" : "border-border bg-card"
           }`}
         >
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <span className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
             {enCours === "position" ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <>
+                <span className="absolute inset-0 animate-ping rounded-xl bg-primary/20" />
+                <Loader2 className="h-5 w-5 animate-spin" />
+              </>
             ) : (
               <MapPin className="h-5 w-5" />
             )}
@@ -389,7 +474,15 @@ function ChoixLocalisation({
               <Badge tone="success">recommandé</Badge>
             </span>
             <span className="block text-xs text-muted-foreground">
-              {value?.methode === "position" ? "Position enregistrée" : "Livraison plus rapide et fiable"}
+              {enCours === "position"
+                ? precision !== null
+                  ? `Affinage du GPS… précision ±${precision} m`
+                  : "Recherche du signal GPS…"
+                : value?.methode === "position"
+                  ? precision !== null
+                    ? `Position enregistrée · précision ±${precision} m`
+                    : "Position enregistrée"
+                  : "Le GPS s'affine jusqu'à la précision maximale"}
             </span>
           </span>
           {value?.methode === "position" ? <Check className="h-5 w-5 text-primary" /> : null}
@@ -398,33 +491,60 @@ function ChoixLocalisation({
         <button
           type="button"
           onClick={() => (recording ? recorder.current?.stop() : demarrerAudio())}
-          disabled={enCours === "position" || enCours === "audio"}
+          disabled={enCours !== null}
           className={`tap tap-active flex w-full items-center gap-3 rounded-2xl border p-3 text-left ${
             value?.methode === "audio" ? "border-primary bg-secondary" : "border-border bg-card"
           }`}
         >
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
             {enCours === "audio" ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : recording ? (
-              <Square className="h-4.5 w-4.5 fill-current" />
+              <>
+                <span className="absolute inset-0 animate-ping rounded-xl bg-destructive/25" />
+                <Square className="h-4.5 w-4.5 fill-current text-destructive" />
+              </>
             ) : (
               <Mic className="h-5 w-5" />
             )}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-bold">
-              {recording ? "Arrêter l'enregistrement" : "Message vocal explicatif"}
+            <span className="flex items-center justify-between gap-2">
+              <span className="text-sm font-bold">
+                {recording ? "Arrêter l'enregistrement" : "Message vocal explicatif"}
+              </span>
+              {recording ? (
+                <span className="inline-flex items-center gap-1.5 text-[12px] font-bold tabular-nums text-destructive">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-destructive" />
+                  {String(Math.floor(secondes / 60)).padStart(2, "0")}:
+                  {String(secondes % 60).padStart(2, "0")}
+                </span>
+              ) : null}
             </span>
-            <span className="block text-xs text-muted-foreground">
-              {value?.methode === "audio"
-                ? "Message vocal enregistré"
-                : "Expliquez où vous vous trouvez"}
-            </span>
+            {recording ? (
+              <span className="mt-2 flex h-8 items-center gap-[3px]">
+                {niveaux.map((niveau, index) => (
+                  <span
+                    key={index}
+                    className="flex-1 rounded-full bg-destructive/80 transition-[height] duration-75"
+                    style={{ height: `${Math.round(niveau * 100)}%`, minHeight: 3 }}
+                  />
+                ))}
+              </span>
+            ) : (
+              <span className="block text-xs text-muted-foreground">
+                {value?.methode === "audio"
+                  ? "Message vocal enregistré"
+                  : "Expliquez où vous vous trouvez"}
+              </span>
+            )}
           </span>
-          {value?.methode === "audio" ? <Check className="h-5 w-5 text-primary" /> : null}
+          {value?.methode === "audio" && !recording ? (
+            <Check className="h-5 w-5 text-primary" />
+          ) : null}
         </button>
       </div>
     </section>
   );
 }
+

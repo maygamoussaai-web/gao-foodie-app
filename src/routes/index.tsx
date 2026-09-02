@@ -168,7 +168,12 @@ function Vitrine() {
           ) : null}
         </div>
         {promotions.isLoading || (promotions.data?.length ?? 0) > 0 ? (
-          <StoriesBar promotions={promotions.data ?? []} loading={promotions.isLoading} />
+          <>
+            <StoriesBar promotions={promotions.data ?? []} loading={promotions.isLoading} />
+            <div className="mt-4">
+              <PromotionsGrid promotions={promotions.data ?? []} loading={promotions.isLoading} />
+            </div>
+          </>
         ) : (
           <div className="flex items-center gap-3 rounded-2xl border border-dashed border-border bg-muted/40 px-4 py-3.5">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground">
@@ -181,6 +186,7 @@ function Vitrine() {
             </p>
           </div>
         )}
+
       </section>
 
       <div className="sticky top-0 z-20 -mx-4 mt-6 bg-background/80 px-4 pt-3 pb-2 backdrop-blur-xl">

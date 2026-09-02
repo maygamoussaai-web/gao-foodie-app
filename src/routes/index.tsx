@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/gf/AppShell";
-import { StoriesBar } from "@/components/gf/Stories";
+import { PromotionsGrid, StoriesBar } from "@/components/gf/Stories";
 import { Badge, EmptyState, Input, Skeleton, Stars } from "@/components/gf/ui";
 import { listPromotionsFn, listRestaurantsFn } from "@/lib/catalog.functions";
 import { fcfa, initials } from "@/lib/format";

@@ -247,3 +247,58 @@ export const confirmPinFn = createServerFn({ method: "POST" })
     if (!ok) throw new Error("Code PIN incorrect.");
     return { ok: true };
   });
+
+/**
+ * Réinitialisation autonome du code PIN, sans WhatsApp : le client prouve son
+ * identité (numéro + prénom + nom exactement comme à l'inscription), un code
+ * à usage unique est créé puis immédiatement consommé pour tracer l'opération.
+ */
+export const resetPinIdentityFn = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        numero: z.string().trim().min(8).max(20),
+        prenom: z.string().trim().min(2).max(50),
+        nom: z.string().trim().min(2).max(50),
+        pin: z.string().regex(/^\d{4,6}$/),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const db = getDb();
+    const { data: client } = await db
+      .from("clients")
+      .select("id, prenom, nom, numero")
+      .eq("numero", normalizeNumero(data.numero))
+      .maybeSingle();
+    if (!client) throw new Error("Aucun compte n'est lié à ce numéro.");
+
+    const same = (a: string, b: string) =>
+      a.trim().toLocaleLowerCase("fr") === b.trim().toLocaleLowerCase("fr");
+    if (!same(client.prenom as string, data.prenom) || !same(client.nom as string, data.nom)) {
+      throw new Error("Le prénom et le nom ne correspondent pas à ce numéro.");
+    }
+
+    const code = String(crypto.getRandomValues(new Uint32Array(1))[0]! % 1_000_000).padStart(6, "0");
+    await db.from("codes_reset_client").insert({
+      client_id: client.id,
+      code,
+      utilise: true,
+      expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    });
+
+    const { error } = await db
+      .from("clients")
+      .update({ code_pin_hash: await hashPin(data.pin) })
+      .eq("id", client.id);
+    if (error) throw new Error("Réinitialisation impossible pour le moment.");
+
+    const token = await startSession(client.id as string);
+    return {
+      id: client.id,
+      prenom: client.prenom,
+      nom: client.nom,
+      numero: client.numero,
+      token,
+    } as Client & { token: string };
+  });

@@ -1,13 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { ArrowLeft, LogIn, MessageCircle } from "lucide-react";
+import { ArrowLeft, KeyRound, LogIn, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AskiaBackdrop } from "@/components/gf/AppShell";
 import { PinField } from "@/components/gf/PinField";
 import { Button, Field, Input } from "@/components/gf/ui";
-import { loginFn, requestPinResetFn, resetPinFn } from "@/lib/auth.functions";
-import { whatsappLink } from "@/lib/constants";
+import { loginFn, resetPinIdentityFn } from "@/lib/auth.functions";
 import { useInvalidateSession } from "@/lib/session";
 import { setSessionToken } from "@/lib/session-token";
 
@@ -32,53 +31,36 @@ function Connexion() {
   const invalidateSession = useInvalidateSession();
   const [numero, setNumero] = useState("");
   const [pin, setPin] = useState("");
-  const [resetStep, setResetStep] = useState<"idle" | "code">("idle");
-  const [code, setCode] = useState("");
+  const [mode, setMode] = useState<"connexion" | "reset">("connexion");
+  const [prenom, setPrenom] = useState("");
+  const [nom, setNom] = useState("");
   const [nouveauPin, setNouveauPin] = useState("");
+  const [confirmationPin, setConfirmationPin] = useState("");
+
+  const entrer = async (client: { prenom: string; token: string }, message: string) => {
+    setSessionToken(client.token);
+    await invalidateSession();
+    await router.invalidate();
+    toast.success(message);
+    navigate({ to: "/" });
+  };
 
   const login = useMutation({
     mutationFn: () => loginFn({ data: { numero, pin } }),
-    onSuccess: async (client) => {
-      setSessionToken(client.token);
-      await invalidateSession();
-      await router.invalidate();
-      toast.success(`Content de vous revoir, ${client.prenom} !`);
-      navigate({ to: "/" });
-    },
+    onSuccess: (client) => entrer(client, `Content de vous revoir, ${client.prenom} !`),
     onError: (error: Error) => toast.error(error.message || "Connexion impossible."),
   });
 
-  const askReset = useMutation({
-    mutationFn: () => requestPinResetFn({ data: { numero } }),
-    onSuccess: (client) => {
-      setResetStep("code");
-      window.open(
-        whatsappLink(
-          `Bonjour GAO FOOD, je suis ${client.prenom} ${client.nom} (${numero}). J'ai oublié mon code PIN, merci de vérifier mon identité et de me communiquer mon code de réinitialisation.`,
-        ),
-        "_blank",
-        "noopener",
-      );
-      toast.success("Code généré. Envoyez le message WhatsApp pour le recevoir.");
-    },
-    onError: (error: Error) => toast.error(error.message || "Demande impossible."),
-  });
-
-  const applyReset = useMutation({
-    mutationFn: () => resetPinFn({ data: { numero, code, pin: nouveauPin } }),
-    onSuccess: async (client) => {
-      setSessionToken(client.token);
-      await invalidateSession();
-      await router.invalidate();
-      toast.success("Nouveau code PIN enregistré.");
-      navigate({ to: "/" });
-    },
+  const reset = useMutation({
+    mutationFn: () =>
+      resetPinIdentityFn({ data: { numero, prenom, nom, pin: nouveauPin } }),
+    onSuccess: (client) => entrer(client, "Nouveau code PIN enregistré."),
     onError: (error: Error) => toast.error(error.message || "Réinitialisation impossible."),
   });
 
   return (
     <div className="relative min-h-screen px-6 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-12">
-      <AskiaBackdrop />
+      <AskiaBackdrop ambiance="auth" />
       <Link
         to="/bienvenue"
         className="tap inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card"
@@ -88,14 +70,18 @@ function Connexion() {
       </Link>
 
       <div className="mx-auto mt-6 max-w-md">
-        <h1 className="text-[30px] leading-tight font-black">Se connecter</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Votre numéro et votre code PIN suffisent.
+        <h1 className="animate-slide-up text-[30px] leading-tight font-black">
+          {mode === "connexion" ? "Se connecter" : "Nouveau code PIN"}
+        </h1>
+        <p className="animate-slide-up mt-2 text-sm text-muted-foreground [animation-delay:60ms]">
+          {mode === "connexion"
+            ? "Votre numéro et votre code PIN suffisent."
+            : "Confirmez votre identité pour définir un nouveau code PIN immédiatement."}
         </p>
 
-        {resetStep === "idle" ? (
+        {mode === "connexion" ? (
           <form
-            className="mt-8 space-y-4"
+            className="animate-slide-up mt-8 space-y-4 [animation-delay:120ms]"
             onSubmit={(event) => {
               event.preventDefault();
               if (numero.trim().length < 8 || pin.length < 4) {
@@ -125,13 +111,7 @@ function Connexion() {
 
             <button
               type="button"
-              onClick={() => {
-                if (numero.trim().length < 8) {
-                  toast.error("Entrez d'abord votre numéro.");
-                  return;
-                }
-                askReset.mutate();
-              }}
+              onClick={() => setMode("reset")}
               className="tap w-full pt-1 text-center text-sm font-semibold text-primary"
             >
               Code PIN oublié ?
@@ -139,41 +119,62 @@ function Connexion() {
           </form>
         ) : (
           <form
-            className="mt-8 space-y-4"
+            className="animate-slide-up mt-8 space-y-4 [animation-delay:120ms]"
             onSubmit={(event) => {
               event.preventDefault();
-              applyReset.mutate();
+              if (nouveauPin !== confirmationPin) {
+                toast.error("Les deux codes PIN ne sont pas identiques.");
+                return;
+              }
+              reset.mutate();
             }}
           >
             <div className="surface-card flex gap-3 p-4 text-sm text-muted-foreground">
-              <MessageCircle className="mt-0.5 h-5 w-5 shrink-0 text-success" />
+              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-success" />
               <p>
-                Un code à 6 chiffres valable 15 minutes a été généré. Notre équipe vous le
-                communique sur WhatsApp après vérification de votre identité.
+                Saisissez le numéro, le prénom et le nom utilisés à l'inscription. Si tout
+                correspond, votre nouveau code PIN est actif tout de suite.
               </p>
             </div>
-            <Field label="Code reçu">
+            <Field label="Numéro de téléphone">
               <Input
-                value={code}
-                onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
-                inputMode="numeric"
-                placeholder="123456"
-                className="tracking-[0.3em]"
+                value={numero}
+                onChange={(event) => setNumero(event.target.value)}
+                inputMode="tel"
+                placeholder="76 12 34 56"
+                autoComplete="tel"
               />
             </Field>
-            <Field label="Nouveau code PIN">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Prénom">
+                <Input value={prenom} onChange={(event) => setPrenom(event.target.value)} />
+              </Field>
+              <Field label="Nom">
+                <Input value={nom} onChange={(event) => setNom(event.target.value)} />
+              </Field>
+            </div>
+            <Field label="Nouveau code PIN" hint="4 à 6 chiffres">
               <PinField value={nouveauPin} onChange={setNouveauPin} />
+            </Field>
+            <Field label="Confirmer le code PIN">
+              <PinField value={confirmationPin} onChange={setConfirmationPin} />
             </Field>
             <Button
               block
               size="lg"
               type="submit"
-              loading={applyReset.isPending}
-              disabled={code.length !== 6 || nouveauPin.length < 4}
+              loading={reset.isPending}
+              disabled={
+                numero.trim().length < 8 ||
+                prenom.trim().length < 2 ||
+                nom.trim().length < 2 ||
+                nouveauPin.length < 4
+              }
             >
+              <KeyRound className="h-4.5 w-4.5" />
               Enregistrer mon nouveau code
             </Button>
-            <Button block variant="ghost" type="button" onClick={() => setResetStep("idle")}>
+            <Button block variant="ghost" type="button" onClick={() => setMode("connexion")}>
               Revenir à la connexion
             </Button>
           </form>
@@ -192,3 +193,4 @@ function Connexion() {
     </div>
   );
 }
+

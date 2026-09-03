@@ -256,9 +256,9 @@ function SelecteurQuantite({
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 backdrop-blur-[2px]">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-foreground/40 backdrop-blur-[2px]">
       <button type="button" aria-label="Fermer" className="absolute inset-0" onClick={onClose} />
-      <div className="animate-rise relative w-full max-w-md rounded-t-3xl border border-border bg-card p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-lift">
+      <div className="animate-rise relative w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-t-3xl border border-border bg-card p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-lift">
         <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border" />
         <button
           type="button"

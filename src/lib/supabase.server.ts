@@ -66,6 +66,8 @@ export async function verifyPin(pin: string, stored: string): Promise<boolean> {
   const parts = stored.split("$");
   if (parts.length !== 4 || parts[0] !== "pbkdf2") return false;
   const iterations = Number(parts[1]);
+  // Au-delà de la limite du runtime, l'appel WebCrypto lèverait une erreur technique.
+  if (!Number.isFinite(iterations) || iterations > PBKDF2_MAX_ITERATIONS) return false;
   const saltHex = parts[2] ?? "";
   const expected = parts[3] ?? "";
   const salt = new Uint8Array(

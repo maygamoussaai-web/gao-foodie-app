@@ -256,9 +256,13 @@ function SelecteurQuantite({
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-foreground/40 backdrop-blur-[2px]">
-      <button type="button" aria-label="Fermer" className="absolute inset-0" onClick={onClose} />
-      <div className="animate-rise relative w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-t-3xl border border-border bg-card p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-lift">
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-foreground/40 backdrop-blur-[2px]"
+      style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}
+    >
+      <button type="button" aria-label="Fermer" className="fixed inset-0" onClick={onClose} />
+      <div className="flex min-h-full items-end justify-center p-0 sm:p-4">
+        <div className="animate-rise relative w-full max-w-md rounded-t-3xl border border-border bg-card p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-lift sm:rounded-3xl">
         <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border" />
         <button
           type="button"

@@ -47,8 +47,12 @@ export function clearSessionCookie() {
 
 
 export function normalizeNumero(numero: string): string {
-  return numero.replace(/[\s.\-()]/g, "");
+  let digits = numero.replace(/\D/g, "");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  if (digits.length > 8 && digits.startsWith("223")) digits = digits.slice(3);
+  return digits;
 }
+
 
 /** Crée une session de 90 jours et pose le cookie httpOnly. */
 export async function startSession(clientId: string): Promise<string> {

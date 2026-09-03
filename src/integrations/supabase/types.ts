@@ -514,6 +514,7 @@ export type Database = {
           horaire_ouverture: string
           id: string
           logo_url: string | null
+          motif_refus: string | null
           motif_suspension: string | null
           nom: string
           prix_livraison: number
@@ -531,6 +532,7 @@ export type Database = {
           horaire_ouverture: string
           id?: string
           logo_url?: string | null
+          motif_refus?: string | null
           motif_suspension?: string | null
           nom: string
           prix_livraison?: number
@@ -548,6 +550,7 @@ export type Database = {
           horaire_ouverture?: string
           id?: string
           logo_url?: string | null
+          motif_refus?: string | null
           motif_suspension?: string | null
           nom?: string
           prix_livraison?: number
@@ -694,9 +697,18 @@ export type Database = {
       }
     }
     Functions: {
+      admin_refuser_restaurant: {
+        Args: { p_motif: string; p_restaurant_id: string; p_token: string }
+        Returns: undefined
+      }
+      admin_restaurants_en_attente: { Args: { p_token: string }; Returns: Json }
       admin_stats_restaurant: {
         Args: { p_restaurant_id: string; p_token: string }
         Returns: Json
+      }
+      admin_valider_restaurant: {
+        Args: { p_restaurant_id: string; p_token: string }
+        Returns: undefined
       }
       annuler_commandes_expirees: { Args: never; Returns: undefined }
       compter_annulations_jour: {
@@ -720,7 +732,7 @@ export type Database = {
     Enums: {
       methode_localisation: "audio" | "position"
       statut_commande: "en_cours" | "vu" | "payee" | "annulee"
-      statut_restaurant: "actif" | "suspendu"
+      statut_restaurant: "actif" | "suspendu" | "en_attente" | "refuse"
       type_article: "plat" | "boisson"
       type_media: "image" | "video"
     }
@@ -738,12 +750,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -767,11 +779,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -792,11 +804,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -817,11 +829,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -834,11 +846,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -852,7 +864,7 @@ export const Constants = {
     Enums: {
       methode_localisation: ["audio", "position"],
       statut_commande: ["en_cours", "vu", "payee", "annulee"],
-      statut_restaurant: ["actif", "suspendu"],
+      statut_restaurant: ["actif", "suspendu", "en_attente", "refuse"],
       type_article: ["plat", "boisson"],
       type_media: ["image", "video"],
     },

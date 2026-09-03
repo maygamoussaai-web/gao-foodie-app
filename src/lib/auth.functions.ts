@@ -69,12 +69,25 @@ export const loginFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const db = getDb();
-    const { data: client } = await db
+    const numero = normalizeNumero(data.numero);
+    const cols = "id, prenom, nom, numero, code_pin_hash";
+    let { data: client } = await db
       .from("clients")
-      .select("id, prenom, nom, numero, code_pin_hash")
-      .eq("numero", normalizeNumero(data.numero))
+      .select(cols)
+      .eq("numero", numero)
       .maybeSingle();
+    if (!client) {
+      // Tolère les anciens enregistrements stockés avec indicatif ou séparateurs.
+      const { data: legacy } = await db
+        .from("clients")
+        .select(cols)
+        .ilike("numero", `%${numero}`)
+        .limit(1)
+        .maybeSingle();
+      client = legacy;
+    }
     if (!client) throw new Error("Numéro ou code PIN incorrect.");
+
     const ok = await verifyPin(data.pin, client.code_pin_hash as string);
     if (!ok) throw new Error("Numéro ou code PIN incorrect.");
 

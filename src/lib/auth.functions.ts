@@ -8,7 +8,7 @@ import {
   requireSessionClient,
   startSession,
 } from "./auth.server";
-import { getDb, hashPin, verifyPin } from "./supabase.server";
+import { getDb, hashPin, isLegacyPinHash, needsRehash, verifyPin } from "./supabase.server";
 import type { Client } from "./types";
 
 export const meFn = createServerFn({ method: "GET" }).handler(

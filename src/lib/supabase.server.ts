@@ -29,7 +29,21 @@ export function getDb(): SupabaseClient {
   });
 }
 
-const PBKDF2_ITERATIONS = 150_000;
+/** Le runtime Worker refuse PBKDF2 au-delà de 100 000 itérations. */
+const PBKDF2_MAX_ITERATIONS = 100_000;
+const PBKDF2_ITERATIONS = 100_000;
+
+/** Vrai si le hachage stocké n'est plus vérifiable / doit être régénéré. */
+export function isLegacyPinHash(stored: string): boolean {
+  const parts = stored.split("$");
+  return parts[0] === "pbkdf2" && Number(parts[1]) > PBKDF2_MAX_ITERATIONS;
+}
+
+/** Vrai si le hachage est valide mais pas au format courant. */
+export function needsRehash(stored: string): boolean {
+  const parts = stored.split("$");
+  return parts[0] !== "pbkdf2" || Number(parts[1]) !== PBKDF2_ITERATIONS;
+}
 
 function toHex(buffer: ArrayBuffer): string {
   return [...new Uint8Array(buffer)].map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -52,6 +66,8 @@ export async function verifyPin(pin: string, stored: string): Promise<boolean> {
   const parts = stored.split("$");
   if (parts.length !== 4 || parts[0] !== "pbkdf2") return false;
   const iterations = Number(parts[1]);
+  // Au-delà de la limite du runtime, l'appel WebCrypto lèverait une erreur technique.
+  if (!Number.isFinite(iterations) || iterations > PBKDF2_MAX_ITERATIONS) return false;
   const saltHex = parts[2] ?? "";
   const expected = parts[3] ?? "";
   const salt = new Uint8Array(

@@ -341,6 +341,7 @@ function SelecteurQuantite({
         >
           Ajouter au panier · {fcfa(article.prix * quantite)}
         </Button>
+        </div>
       </div>
     </div>
   );

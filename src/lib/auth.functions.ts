@@ -88,8 +88,26 @@ export const loginFn = createServerFn({ method: "POST" })
     }
     if (!client) throw new Error("Numéro ou code PIN incorrect.");
 
-    const ok = await verifyPin(data.pin, client.code_pin_hash as string);
+    const stored = client.code_pin_hash as string;
+    if (isLegacyPinHash(stored)) {
+      throw new Error(
+        "Sécurité mise à jour : réinitialisez votre code PIN via « Code PIN oublié ».",
+      );
+    }
+
+    const ok = await verifyPin(data.pin, stored);
     if (!ok) throw new Error("Numéro ou code PIN incorrect.");
+
+    if (needsRehash(stored)) {
+      try {
+        await db
+          .from("clients")
+          .update({ code_pin_hash: await hashPin(data.pin) })
+          .eq("id", client.id);
+      } catch {
+        /* la connexion reste valide même si la mise à niveau échoue */
+      }
+    }
 
     const token = await startSession(client.id as string);
     return {

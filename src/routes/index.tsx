@@ -84,19 +84,24 @@ function Vitrine() {
     if (!session.isLoading && !session.data) navigate({ to: "/bienvenue" });
   }, [session.isLoading, session.data, navigate]);
 
+  // Le catalogue se charge en parallèle de la vérification de session :
+  // plus d'attente en cascade avant l'affichage des restaurants.
   const restaurants = useQuery<Restaurant[]>({
     queryKey: ["restaurants"],
     queryFn: () => listRestaurantsFn(),
-    enabled: Boolean(session.data),
+    staleTime: 30_000,
+    placeholderData: (previous) => previous,
     refetchOnWindowFocus: true,
-    refetchInterval: 60_000,
+    refetchInterval: 120_000,
   });
 
   const promotions = useQuery<Promotion[]>({
     queryKey: ["promotions"],
     queryFn: () => listPromotionsFn(),
-    enabled: Boolean(session.data),
+    staleTime: 60_000,
+    placeholderData: (previous) => previous,
   });
+
 
   const filtres = useMemo(() => {
     // Sécurité d'affichage : seuls les restaurants actifs sont visibles.

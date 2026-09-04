@@ -1,11 +1,25 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronRight, PlayCircle, Sparkles } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { ChevronRight, PlayCircle, Sparkles, Volume2, VolumeX } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Promotion } from "@/lib/types";
 import { Button, Skeleton } from "./ui";
 
 /** Durée d'affichage d'une image dans le viewer (les vidéos avancent à leur fin). */
 const DUREE_IMAGE_MS = 5000;
+
+/** Regroupe les promotions par restaurant, en conservant l'ordre d'apparition. */
+function grouperParRestaurant(promotions: Promotion[]): Promotion[][] {
+  const ordreRestaurants: string[] = [];
+  const parRestaurant = new Map<string, Promotion[]>();
+  for (const promo of promotions) {
+    if (!parRestaurant.has(promo.restaurant_id)) {
+      parRestaurant.set(promo.restaurant_id, []);
+      ordreRestaurants.push(promo.restaurant_id);
+    }
+    parRestaurant.get(promo.restaurant_id)!.push(promo);
+  }
+  return ordreRestaurants.map((id) => parRestaurant.get(id)!);
+}
 
 /** Libellé et cible du bouton d'action d'une promotion. */
 function actionPromotion(promotion: Promotion) {
@@ -45,10 +59,11 @@ function PromoAction({
 }
 
 /**
- * Barre de statuts façon WhatsApp : avatars ronds en haut, anneau dégradé
- * tant que la promotion n'a pas été vue, anneau gris une fois consultée.
- * C'est le SEUL endroit où les promotions sont listées — pas de doublon
- * en dessous (l'ancienne grille de cartes a été retirée).
+ * Barre de statuts façon WhatsApp : UN rond par restaurant (pas par
+ * promotion). Un restaurant avec plusieurs promotions n'a qu'un seul rond ;
+ * l'ouvrir enchaîne toutes ses promotions, comme les statuts groupés d'un
+ * contact WhatsApp. Anneau dégradé tant qu'il reste au moins une promotion
+ * non vue dans le groupe, gris une fois tout consulté.
  */
 export function StoriesBar({
   promotions,
@@ -57,7 +72,8 @@ export function StoriesBar({
   promotions: Promotion[];
   loading?: boolean;
 }) {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const groupes = useMemo(() => grouperParRestaurant(promotions), [promotions]);
+  const [ouverture, setOuverture] = useState<{ groupe: number; item: number } | null>(null);
   const [vues, setVues] = useState<Set<string>>(new Set());
 
   if (loading) {
@@ -73,39 +89,40 @@ export function StoriesBar({
     );
   }
 
-  if (promotions.length === 0) return null;
+  if (groupes.length === 0) return null;
 
   return (
     <>
       <div className="no-scrollbar -mx-4 flex gap-3.5 overflow-x-auto px-4 pb-1">
-        {promotions.map((promotion, index) => {
-          const vue = vues.has(promotion.id);
+        {groupes.map((groupe, groupeIndex) => {
+          const premiere = groupe[0]!;
+          const toutVu = groupe.every((p) => vues.has(p.id));
           return (
             <button
-              key={promotion.id}
+              key={premiere.restaurant_id}
               type="button"
-              onClick={() => setOpenIndex(index)}
+              onClick={() => setOuverture({ groupe: groupeIndex, item: 0 })}
               className="tap tap-active flex w-[68px] shrink-0 flex-col items-center gap-1.5"
             >
               <span
                 className={
-                  vue
+                  toutVu
                     ? "rounded-full bg-border p-[2.5px]"
                     : "rounded-full bg-gradient-to-tr from-primary to-sand p-[2.5px]"
                 }
               >
                 <span className="relative block rounded-full bg-background p-[2px]">
-                  {promotion.type_media === "image" ? (
+                  {premiere.restaurant_logo ? (
                     <img
-                      src={promotion.media_url}
-                      alt={promotion.description ?? promotion.restaurant_nom}
+                      src={premiere.restaurant_logo}
+                      alt={premiere.restaurant_nom}
                       className="h-14 w-14 rounded-full object-cover"
                       loading="lazy"
                     />
-                  ) : promotion.restaurant_logo ? (
+                  ) : premiere.type_media === "image" ? (
                     <img
-                      src={promotion.restaurant_logo}
-                      alt={promotion.restaurant_nom}
+                      src={premiere.media_url}
+                      alt={premiere.restaurant_nom}
                       className="h-14 w-14 rounded-full object-cover"
                       loading="lazy"
                     />
@@ -114,28 +131,33 @@ export function StoriesBar({
                       <Sparkles className="h-5 w-5" />
                     </span>
                   )}
-                  {promotion.type_media === "video" ? (
+                  {groupe.length > 1 ? (
+                    <span className="absolute -right-0.5 -bottom-0.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-background bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                      {groupe.length}
+                    </span>
+                  ) : premiere.type_media === "video" ? (
                     <PlayCircle className="absolute right-0 bottom-0 h-5 w-5 rounded-full bg-background text-primary" />
                   ) : null}
                 </span>
               </span>
               <span className="w-full truncate text-center text-[11px] font-semibold text-muted-foreground">
-                {promotion.restaurant_nom}
+                {premiere.restaurant_nom}
               </span>
             </button>
           );
         })}
       </div>
-      {openIndex !== null ? (
+      {ouverture !== null ? (
         <StoryViewer
-          promotions={promotions}
-          index={openIndex}
-          onIndexChange={(next) => {
-            setOpenIndex(next);
-            setVues((prev) => new Set(prev).add(promotions[next]!.id));
+          groupes={groupes}
+          groupeIndex={ouverture.groupe}
+          itemIndex={ouverture.item}
+          onNaviguer={(groupe, item) => {
+            setOuverture({ groupe, item });
+            setVues((prev) => new Set(prev).add(groupes[groupe]![item]!.id));
           }}
-          onClose={() => setOpenIndex(null)}
-          onOpenMarkSeen={(id) => setVues((prev) => new Set(prev).add(id))}
+          onClose={() => setOuverture(null)}
+          onMarquerVu={(id) => setVues((prev) => new Set(prev).add(id))}
         />
       ) : null}
     </>
@@ -143,30 +165,52 @@ export function StoriesBar({
 }
 
 function StoryViewer({
-  promotions,
-  index,
-  onIndexChange,
+  groupes,
+  groupeIndex,
+  itemIndex,
+  onNaviguer,
   onClose,
-  onOpenMarkSeen,
+  onMarquerVu,
 }: {
-  promotions: Promotion[];
-  index: number;
-  onIndexChange: (index: number) => void;
+  groupes: Promotion[][];
+  groupeIndex: number;
+  itemIndex: number;
+  onNaviguer: (groupeIndex: number, itemIndex: number) => void;
   onClose: () => void;
-  onOpenMarkSeen: (id: string) => void;
+  onMarquerVu: (id: string) => void;
 }) {
-  const promotion = promotions[index]!;
+  const groupe = groupes[groupeIndex]!;
+  const promotion = groupe[itemIndex]!;
   const [progress, setProgress] = useState(0);
   const [enPause, setEnPause] = useState(false);
+  const [muet, setMuet] = useState(true);
+  const [erreurMedia, setErreurMedia] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const debutRef = useRef(0);
   const ecouleAvantPauseRef = useRef(0);
   const dragStartY = useRef<number | null>(null);
   const [dragY, setDragY] = useState(0);
 
-  // Marque la promotion courante comme vue dès l'ouverture.
+  function suivant() {
+    if (itemIndex < groupe.length - 1) {
+      onNaviguer(groupeIndex, itemIndex + 1);
+    } else if (groupeIndex < groupes.length - 1) {
+      onNaviguer(groupeIndex + 1, 0);
+    } else {
+      onClose();
+    }
+  }
+  function precedent() {
+    if (itemIndex > 0) {
+      onNaviguer(groupeIndex, itemIndex - 1);
+    } else if (groupeIndex > 0) {
+      onNaviguer(groupeIndex - 1, groupes[groupeIndex - 1]!.length - 1);
+    }
+  }
+
   useEffect(() => {
-    onOpenMarkSeen(promotion.id);
+    onMarquerVu(promotion.id);
+    setErreurMedia(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [promotion.id]);
 
@@ -188,8 +232,7 @@ function StoryViewer({
       const ratio = Math.min(1, ecoule / DUREE_IMAGE_MS);
       setProgress(ratio * 100);
       if (ratio >= 1) {
-        if (index < promotions.length - 1) onIndexChange(index + 1);
-        else onClose();
+        suivant();
         return;
       }
       frame = requestAnimationFrame(tick);
@@ -197,7 +240,7 @@ function StoryViewer({
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index, promotion.id, promotion.type_media, enPause]);
+  }, [groupeIndex, itemIndex, promotion.type_media, enPause]);
 
   // Pause/reprise vidéo quand on maintient l'appui.
   useEffect(() => {
@@ -210,8 +253,8 @@ function StoryViewer({
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
-      if (event.key === "ArrowRight" && index < promotions.length - 1) onIndexChange(index + 1);
-      if (event.key === "ArrowLeft" && index > 0) onIndexChange(index - 1);
+      if (event.key === "ArrowRight") suivant();
+      if (event.key === "ArrowLeft") precedent();
     };
     window.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
@@ -219,7 +262,8 @@ function StoryViewer({
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [index, promotions.length, onClose, onIndexChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupeIndex, itemIndex]);
 
   function onTouchStart(event: React.TouchEvent) {
     dragStartY.current = event.touches[0]!.clientY;
@@ -252,15 +296,15 @@ function StoryViewer({
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
+      {/* Une barre de progression par promotion DU GROUPE COURANT uniquement. */}
       <div className="flex gap-1 px-3 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
-        {promotions.map((item, itemIndex) => (
+        {groupe.map((item, i) => (
           <span key={item.id} className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/25">
             <span
               className="block h-full bg-white"
               style={{
-                width:
-                  itemIndex < index ? "100%" : itemIndex === index ? `${progress}%` : "0%",
-                transition: itemIndex === index && promotion.type_media === "video" ? "width 120ms linear" : undefined,
+                width: i < itemIndex ? "100%" : i === itemIndex ? `${progress}%` : "0%",
+                transition: i === itemIndex && promotion.type_media === "video" ? "width 120ms linear" : undefined,
               }}
             />
           </span>
@@ -276,6 +320,16 @@ function StoryViewer({
           />
         ) : null}
         <p className="flex-1 truncate text-sm font-bold text-white">{promotion.restaurant_nom}</p>
+        {promotion.type_media === "video" ? (
+          <button
+            type="button"
+            onClick={() => setMuet((m) => !m)}
+            aria-label={muet ? "Activer le son" : "Couper le son"}
+            className="tap flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+          >
+            {muet ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={onClose}
@@ -288,47 +342,45 @@ function StoryViewer({
 
       <div className="relative flex-1">
         <div className="absolute inset-0 flex items-center justify-center px-2">
-          {promotion.type_media === "video" ? (
+          {erreurMedia ? (
+            <p className="text-sm text-white/70">Ce média n'a pas pu être chargé.</p>
+          ) : promotion.type_media === "video" ? (
             <video
               key={promotion.id}
               ref={videoRef}
               src={promotion.media_url}
               className="max-h-full max-w-full rounded-2xl"
               autoPlay
+              muted={muet}
               playsInline
+              onError={() => setErreurMedia(true)}
               onTimeUpdate={(event) => {
                 const video = event.currentTarget;
                 if (video.duration > 0) setProgress((video.currentTime / video.duration) * 100);
               }}
-              onEnded={() => {
-                if (index < promotions.length - 1) onIndexChange(index + 1);
-                else onClose();
-              }}
+              onEnded={suivant}
             />
           ) : (
             <img
               src={promotion.media_url}
               alt={promotion.description ?? "Promotion"}
               className="max-h-full max-w-full rounded-2xl object-contain"
+              onError={() => setErreurMedia(true)}
             />
           )}
         </div>
-        {index > 0 ? (
-          <button
-            type="button"
-            aria-label="Promotion précédente"
-            onClick={() => onIndexChange(index - 1)}
-            className="absolute top-0 left-0 h-full w-1/4"
-          />
-        ) : null}
-        {index < promotions.length - 1 ? (
-          <button
-            type="button"
-            aria-label="Promotion suivante"
-            onClick={() => onIndexChange(index + 1)}
-            className="absolute top-0 right-0 h-full w-1/4"
-          />
-        ) : null}
+        <button
+          type="button"
+          aria-label="Précédent"
+          onClick={precedent}
+          className="absolute top-0 left-0 h-full w-1/4"
+        />
+        <button
+          type="button"
+          aria-label="Suivant"
+          onClick={suivant}
+          className="absolute top-0 right-0 h-full w-1/4"
+        />
       </div>
 
       <div className="space-y-4 px-5 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">

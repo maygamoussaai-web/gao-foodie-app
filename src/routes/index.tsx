@@ -99,7 +99,6 @@ function Vitrine() {
   });
 
   const filtres = useMemo(() => {
-  const filtres = useMemo(() => {
     // Sécurité d'affichage : seuls les restaurants actifs sont visibles.
     let list = (restaurants.data ?? []).filter((restaurant) => restaurant.statut === "actif");
     const term = recherche.trim().toLowerCase();

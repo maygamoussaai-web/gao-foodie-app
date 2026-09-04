@@ -392,56 +392,17 @@ function StoryViewer({
           ✕
         </button>
       </div>
-
-      <div className="relative flex-1">
-        <div className="absolute inset-0 flex items-center justify-center px-2">
-          {erreurMedia ? (
-            <p className="text-sm text-white/70">Ce média n'a pas pu être chargé.</p>
-          ) : promotion.type_media === "video" ? (
-            <video
-              key={promotion.id}
-              ref={videoRef}
-              src={promotion.media_url}
-              className="max-h-full max-w-full rounded-2xl"
-              autoPlay
-              muted={muet}
-              playsInline
-              onError={() => setErreurMedia(true)}
-              onTimeUpdate={(event) => {
-                const video = event.currentTarget;
-                if (video.duration > 0) setProgress((video.currentTime / video.duration) * 100);
-              }}
-              onEnded={suivant}
-            />
-          ) : (
-            <img
-              src={promotion.media_url}
-              alt={promotion.description ?? "Promotion"}
-              className="max-h-full max-w-full rounded-2xl object-contain"
-              onError={() => setErreurMedia(true)}
-            />
-          )}
-        </div>
-        <button
-          type="button"
-          aria-label="Précédent"
-          onClick={precedent}
-          className="absolute top-0 left-0 h-full w-1/4"
-        />
-        <button
-          type="button"
-          aria-label="Suivant"
-          onClick={suivant}
-          className="absolute top-0 right-0 h-full w-1/4"
-        />
       </div>
 
-      <div className="space-y-4 px-5 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+      <div className="absolute inset-x-0 bottom-0 space-y-3 px-5 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
         {promotion.description ? (
-          <p className="text-[15px] leading-relaxed text-white/90">{promotion.description}</p>
+          <p className="line-clamp-3 text-[15px] leading-relaxed text-white/90">
+            {promotion.description}
+          </p>
         ) : null}
         <PromoAction promotion={promotion} onNavigate={onClose} />
       </div>
     </div>
+
   );
 }

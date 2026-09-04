@@ -88,6 +88,8 @@ function Vitrine() {
     queryKey: ["restaurants"],
     queryFn: () => listRestaurantsFn(),
     enabled: Boolean(session.data),
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
   });
 
   const promotions = useQuery<Promotion[]>({

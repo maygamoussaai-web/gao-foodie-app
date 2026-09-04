@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/gf/AppShell";
-import { PromotionsGrid, StoriesBar } from "@/components/gf/Stories";
+import { StoriesBar } from "@/components/gf/Stories";
 import { Badge, EmptyState, Input, Skeleton, Stars } from "@/components/gf/ui";
 import { listPromotionsFn, listRestaurantsFn } from "@/lib/catalog.functions";
 import { fcfa, initials } from "@/lib/format";
@@ -168,12 +168,7 @@ function Vitrine() {
           ) : null}
         </div>
         {promotions.isLoading || (promotions.data?.length ?? 0) > 0 ? (
-          <>
-            <StoriesBar promotions={promotions.data ?? []} loading={promotions.isLoading} />
-            <div className="mt-4">
-              <PromotionsGrid promotions={promotions.data ?? []} loading={promotions.isLoading} />
-            </div>
-          </>
+          <StoriesBar promotions={promotions.data ?? []} loading={promotions.isLoading} />
         ) : (
           <div className="flex items-center gap-3 rounded-2xl border border-dashed border-border bg-muted/40 px-4 py-3.5">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground">

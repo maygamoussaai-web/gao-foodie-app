@@ -88,6 +88,8 @@ function Vitrine() {
     queryKey: ["restaurants"],
     queryFn: () => listRestaurantsFn(),
     enabled: Boolean(session.data),
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
   });
 
   const promotions = useQuery<Promotion[]>({
@@ -97,7 +99,8 @@ function Vitrine() {
   });
 
   const filtres = useMemo(() => {
-    let list = [...(restaurants.data ?? [])];
+    // Sécurité d'affichage : seuls les restaurants actifs sont visibles.
+    let list = (restaurants.data ?? []).filter((restaurant) => restaurant.statut === "actif");
     const term = recherche.trim().toLowerCase();
     if (term) {
       list = list.filter(

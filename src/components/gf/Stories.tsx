@@ -286,8 +286,9 @@ function StoryViewer({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-[oklch(0.12_0.01_255)]"
+      className="fixed inset-0 z-50 overflow-hidden bg-[oklch(0.12_0.01_255)]"
       style={{
+        height: "100dvh",
         transform: dragY ? `translateY(${dragY}px) scale(${1 - Math.min(dragY, 200) / 900})` : undefined,
         opacity: dragY ? Math.max(0.5, 1 - dragY / 300) : 1,
         transition: dragY ? "none" : "transform 200ms ease, opacity 200ms ease",
@@ -296,8 +297,60 @@ function StoryViewer({
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
+      {/* Média plein écran, façon WhatsApp : la story occupe toute la hauteur. */}
+      <div className="absolute inset-0">
+        {erreurMedia ? (
+          <p className="flex h-full items-center justify-center text-sm text-white/70">
+            Ce média n'a pas pu être chargé.
+          </p>
+        ) : promotion.type_media === "video" ? (
+          <video
+            key={promotion.id}
+            ref={videoRef}
+            src={promotion.media_url}
+            className="h-full w-full object-contain"
+            autoPlay
+            muted={muet}
+            playsInline
+            onError={() => setErreurMedia(true)}
+            onTimeUpdate={(event) => {
+              const video = event.currentTarget;
+              if (video.duration > 0) setProgress((video.currentTime / video.duration) * 100);
+            }}
+            onEnded={suivant}
+          />
+        ) : (
+          <img
+            src={promotion.media_url}
+            alt={promotion.description ?? "Promotion"}
+            className="h-full w-full object-contain"
+            onError={() => setErreurMedia(true)}
+          />
+        )}
+      </div>
+
+      {/* Zones de navigation tactile (comme WhatsApp : gauche/droite). */}
+      <button
+        type="button"
+        aria-label="Précédent"
+        onClick={precedent}
+        className="absolute top-24 bottom-32 left-0 w-1/3"
+      />
+      <button
+        type="button"
+        aria-label="Suivant"
+        onClick={suivant}
+        className="absolute top-24 right-0 bottom-32 w-1/3"
+      />
+
+      {/* Dégradés de lisibilité haut/bas. */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/70 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-black/80 to-transparent" />
+
+      <div className="absolute inset-x-0 top-0">
       {/* Une barre de progression par promotion DU GROUPE COURANT uniquement. */}
       <div className="flex gap-1 px-3 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+
         {groupe.map((item, i) => (
           <span key={item.id} className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/25">
             <span

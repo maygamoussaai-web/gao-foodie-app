@@ -170,7 +170,7 @@ export default function MapPicker({
           {/* Épingle fixe au centre : la carte bouge dessous. */}
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div className="-mt-6 flex flex-col items-center">
-              <span className="animate-bounce-slow flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lift ring-4 ring-background/70">
+              <span className="animate-bounce flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lift ring-4 ring-background/70">
                 <MapPin className="h-5.5 w-5.5" />
               </span>
               <span className="mt-0.5 h-3 w-3 rounded-full bg-foreground/25 blur-[2px]" />
@@ -220,7 +220,7 @@ export default function MapPicker({
                     ? "bg-primary/12 text-primary"
                     : precis
                       ? "bg-success/12 text-success"
-                      : "bg-warning/15 text-warning-foreground"
+                      : "bg-warning/15 text-warning"
                 }`}
               >
                 <span

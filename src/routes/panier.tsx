@@ -297,6 +297,9 @@ function ChoixLocalisation({
 }) {
   const [enCours, setEnCours] = useState<"position" | "audio" | null>(null);
   const [precision, setPrecision] = useState<number | null>(null);
+  const [brut, setBrut] = useState<{ lat: number; lng: number } | null>(null);
+  const [carteOuverte, setCarteOuverte] = useState(false);
+  const [ajusteALaMain, setAjusteALaMain] = useState(false);
   const [recording, setRecording] = useState(false);
   const [secondes, setSecondes] = useState(0);
   const [niveaux, setNiveaux] = useState<number[]>(() => Array.from({ length: 28 }, () => 0.08));

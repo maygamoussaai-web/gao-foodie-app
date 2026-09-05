@@ -12,57 +12,50 @@ const TABS = [
 ] as const;
 
 /**
- * Ambiances animées par page : chaque écran a sa propre composition de halos
- * afin que la navigation soit perceptible sans jamais devenir bruyante.
+ * Ambiances par page : chaque écran a sa propre composition de halos.
+ *
+ * PERFORMANCE : ces halos sont maintenant STATIQUES (pas d'animation en
+ * boucle infinie). Sur les téléphones d'entrée/milieu de gamme courants à
+ * Gao, un flou (`blur-3xl`) animé en continu force le processeur graphique
+ * à recalculer une grande zone floutée à chaque image, indéfiniment — même
+ * quand rien ne bouge à l'écran. Multiplié par 2-3 halos + une grille de
+ * fond animée + deux barres à flou (`backdrop-blur`), ça sature l'appareil
+ * et donne l'impression que toute l'app est lente. Le rendu reste beau
+ * (dégradés doux, positions variées par page) sans consommer en continu.
  */
 export type Ambiance = "accueil" | "menu" | "panier" | "commandes" | "compte" | "auth";
 
-const AMBIANCES: Record<
-  Ambiance,
-  { blobs: { className: string; delay: string }[]; grid: boolean }
-> = {
+const AMBIANCES: Record<Ambiance, { blobs: string[]; grid: boolean }> = {
   accueil: {
     grid: true,
     blobs: [
-      { className: "-top-32 -left-24 h-80 w-80 bg-primary/30", delay: "0s" },
-      { className: "top-52 -right-24 h-72 w-72 bg-primary-glow/25", delay: "-6s" },
-      { className: "bottom-10 left-1/3 h-64 w-64 bg-sand/20", delay: "-12s" },
+      "-top-32 -left-24 h-80 w-80 bg-primary/22",
+      "top-52 -right-24 h-72 w-72 bg-primary-glow/18",
+      "bottom-10 left-1/3 h-64 w-64 bg-sand/14",
     ],
   },
   menu: {
     grid: false,
-    blobs: [
-      { className: "-top-24 right-0 h-72 w-72 bg-primary/28", delay: "-3s" },
-      { className: "top-1/2 -left-28 h-80 w-80 bg-primary-glow/20", delay: "-9s" },
-    ],
+    blobs: ["-top-24 right-0 h-72 w-72 bg-primary/20", "top-1/2 -left-28 h-80 w-80 bg-primary-glow/14"],
   },
   panier: {
     grid: false,
     blobs: [
-      { className: "-top-20 left-1/2 h-72 w-72 -translate-x-1/2 bg-primary/26", delay: "-2s" },
-      { className: "bottom-24 -right-24 h-72 w-72 bg-success/16", delay: "-11s" },
+      "-top-20 left-1/2 h-72 w-72 -translate-x-1/2 bg-primary/18",
+      "bottom-24 -right-24 h-72 w-72 bg-success/12",
     ],
   },
   commandes: {
     grid: true,
-    blobs: [
-      { className: "-top-28 -right-20 h-72 w-72 bg-primary/26", delay: "-5s" },
-      { className: "bottom-0 -left-24 h-72 w-72 bg-primary-glow/22", delay: "-14s" },
-    ],
+    blobs: ["-top-28 -right-20 h-72 w-72 bg-primary/18", "bottom-0 -left-24 h-72 w-72 bg-primary-glow/16"],
   },
   compte: {
     grid: false,
-    blobs: [
-      { className: "-top-24 -left-20 h-72 w-72 bg-primary/24", delay: "-4s" },
-      { className: "bottom-16 right-0 h-64 w-64 bg-sand/22", delay: "-10s" },
-    ],
+    blobs: ["-top-24 -left-20 h-72 w-72 bg-primary/16", "bottom-16 right-0 h-64 w-64 bg-sand/16"],
   },
   auth: {
     grid: true,
-    blobs: [
-      { className: "-top-32 -left-16 h-80 w-80 bg-primary/30", delay: "0s" },
-      { className: "bottom-0 -right-20 h-80 w-80 bg-primary-glow/24", delay: "-8s" },
-    ],
+    blobs: ["-top-32 -left-16 h-80 w-80 bg-primary/22", "bottom-0 -right-20 h-80 w-80 bg-primary-glow/18"],
   },
 };
 
@@ -71,10 +64,11 @@ export function AskiaBackdrop({ ambiance = "accueil" }: { ambiance?: Ambiance })
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
       <div className="absolute inset-0 bg-background" />
-      <div className="gradient-hero animate-fade absolute inset-x-0 top-0 h-[460px]" />
+      <div className="gradient-hero absolute inset-x-0 top-0 h-[460px]" />
 
+      {/* Grille statique (plus de pan animé en continu). */}
       {config.grid ? (
-        <div className="bg-grid animate-grid-pan absolute inset-0 opacity-[0.35] [mask-image:radial-gradient(90%_60%_at_50%_0%,black,transparent)]" />
+        <div className="bg-grid absolute inset-0 opacity-[0.35] [mask-image:radial-gradient(90%_60%_at_50%_0%,black,transparent)]" />
       ) : null}
 
       <img
@@ -83,15 +77,12 @@ export function AskiaBackdrop({ ambiance = "accueil" }: { ambiance?: Ambiance })
         width={1024}
         height={1024}
         loading="lazy"
-        className="animate-drift absolute -right-16 bottom-8 w-[78vw] max-w-[520px] opacity-[var(--askia-opacity)] dark:invert"
+        className="absolute -right-16 bottom-8 w-[78vw] max-w-[520px] opacity-[var(--askia-opacity)] dark:invert"
       />
 
+      {/* Halos statiques : le flou n'est plus animé (voir note plus haut). */}
       {config.blobs.map((blob) => (
-        <div
-          key={blob.className}
-          style={{ animationDelay: blob.delay }}
-          className={cn("animate-aurora absolute rounded-full blur-3xl", blob.className)}
-        />
+        <div key={blob} className={cn("absolute rounded-full blur-3xl", blob)} />
       ))}
     </div>
   );
@@ -112,34 +103,25 @@ export function AppShell({
   back?: React.ReactNode | undefined;
   ambiance?: Ambiance | undefined;
 }) {
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
-
   return (
     <div className="min-h-screen">
       <AskiaBackdrop ambiance={ambiance} />
       {title ? (
-        <header className="sticky top-0 z-30 border-b border-border/70 bg-background/80 backdrop-blur-xl">
-          <span
-            aria-hidden
-            className="gradient-primary absolute inset-x-0 bottom-0 h-px opacity-60"
-          />
+        <header className="sticky top-0 z-30 border-b border-border/70 bg-background/95">
+          <span aria-hidden className="gradient-primary absolute inset-x-0 bottom-0 h-px opacity-60" />
           <div className="mx-auto flex h-16 max-w-3xl items-center gap-3 px-4">
             {back}
-            <div className="animate-slide-left min-w-0 flex-1">
-              <h1 className="truncate text-[19px] leading-tight font-extrabold tracking-tight">
-                {title}
-              </h1>
-              {subtitle ? (
-                <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
-              ) : null}
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate text-[19px] leading-tight font-extrabold tracking-tight">{title}</h1>
+              {subtitle ? <p className="truncate text-xs text-muted-foreground">{subtitle}</p> : null}
             </div>
             {right}
           </div>
         </header>
       ) : null}
-      <main key={pathname} className="animate-fade mx-auto w-full max-w-3xl px-4 pt-4 pb-28">
-        {children}
-      </main>
+      {/* Plus de remontage complet à chaque navigation (l'ancien `key={pathname}`
+          détruisait et recréait toute la page à chaque changement d'onglet). */}
+      <main className="animate-fade mx-auto w-full max-w-3xl px-4 pt-4 pb-28">{children}</main>
       <BottomNav />
     </div>
   );
@@ -150,7 +132,7 @@ function BottomNav() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/95 pb-[env(safe-area-inset-bottom)]">
       <span aria-hidden className="gradient-primary absolute inset-x-0 top-0 h-px opacity-50" />
       <div className="mx-auto flex max-w-3xl items-stretch justify-between px-2">
         {TABS.map((tab) => {
@@ -167,19 +149,16 @@ function BottomNav() {
             >
               <span className="relative">
                 {active ? (
-                  <span
-                    aria-hidden
-                    className="animate-pop absolute -inset-2.5 rounded-2xl bg-primary/12"
-                  />
+                  <span aria-hidden className="absolute -inset-2.5 rounded-2xl bg-primary/12" />
                 ) : null}
                 <Icon
                   className={cn(
                     "relative h-[22px] w-[22px] transition-transform duration-300 group-hover:-translate-y-0.5",
-                    active && "animate-pop stroke-[2.4]",
+                    active && "stroke-[2.4]",
                   )}
                 />
                 {tab.to === "/panier" && count > 0 ? (
-                  <span className="animate-pop absolute -top-1.5 -right-2.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground shadow-lg">
+                  <span className="absolute -top-1.5 -right-2.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground shadow-lg">
                     {count > 99 ? "99+" : count}
                   </span>
                 ) : null}

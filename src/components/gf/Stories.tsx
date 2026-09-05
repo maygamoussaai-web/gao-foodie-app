@@ -164,6 +164,49 @@ export function StoriesBar({
   );
 }
 
+/**
+ * Barre de progression d'un item.
+ * PERFORMANCE : pour une image, la progression est une vraie animation CSS
+ * (`animation-play-state` géré nativement par le navigateur) — pas de
+ * boucle JavaScript ni de re-rendu React à chaque image. Pour une vidéo,
+ * la largeur suit `currentTime`, mise à jour par l'événement natif du
+ * lecteur (peu fréquent, pas de coût supplémentaire).
+ */
+function SegmentProgression({
+  etat,
+  dureeMs,
+  enPause,
+  progressVideo,
+  onTermine,
+}: {
+  etat: "passe" | "courant" | "a_venir";
+  dureeMs: number | null;
+  enPause: boolean;
+  progressVideo: number;
+  onTermine: () => void;
+}) {
+  return (
+    <span className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/25">
+      {etat === "passe" ? (
+        <span className="block h-full w-full bg-white" />
+      ) : etat === "courant" ? (
+        dureeMs != null ? (
+          <span
+            key="image"
+            className="animate-story-fill block h-full bg-white"
+            style={{ animationDuration: `${dureeMs}ms`, animationPlayState: enPause ? "paused" : "running" }}
+            onAnimationEnd={onTermine}
+          />
+        ) : (
+          <span className="block h-full bg-white" style={{ width: `${progressVideo}%` }} />
+        )
+      ) : (
+        <span className="block h-full w-0 bg-white" />
+      )}
+    </span>
+  );
+}
+
 function StoryViewer({
   groupes,
   groupeIndex,
@@ -181,15 +224,17 @@ function StoryViewer({
 }) {
   const groupe = groupes[groupeIndex]!;
   const promotion = groupe[itemIndex]!;
-  const [progress, setProgress] = useState(0);
+  const [progressVideo, setProgressVideo] = useState(0);
   const [enPause, setEnPause] = useState(false);
   const [muet, setMuet] = useState(true);
   const [erreurMedia, setErreurMedia] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const debutRef = useRef(0);
-  const ecouleAvantPauseRef = useRef(0);
+
+  // Geste "glisser pour fermer" : manipulation directe du DOM pendant le
+  // mouvement (pas de setState par pixel déplacé, pour rester fluide).
+  const conteneurRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef<number | null>(null);
-  const [dragY, setDragY] = useState(0);
+  const dragYRef = useRef(0);
 
   function suivant() {
     if (itemIndex < groupe.length - 1) {
@@ -211,36 +256,9 @@ function StoryViewer({
   useEffect(() => {
     onMarquerVu(promotion.id);
     setErreurMedia(false);
+    setProgressVideo(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [promotion.id]);
-
-  // Progression automatique façon story WhatsApp : barre qui se remplit,
-  // avance toute seule à la fin (image = durée fixe, vidéo = sa propre durée).
-  useEffect(() => {
-    setProgress(0);
-    ecouleAvantPauseRef.current = 0;
-    if (promotion.type_media === "video") return; // pilotée par onTimeUpdate/onEnded
-
-    debutRef.current = performance.now();
-    let frame: number;
-    const tick = () => {
-      if (enPause) {
-        frame = requestAnimationFrame(tick);
-        return;
-      }
-      const ecoule = ecouleAvantPauseRef.current + (performance.now() - debutRef.current);
-      const ratio = Math.min(1, ecoule / DUREE_IMAGE_MS);
-      setProgress(ratio * 100);
-      if (ratio >= 1) {
-        suivant();
-        return;
-      }
-      frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupeIndex, itemIndex, promotion.type_media, enPause]);
 
   // Pause/reprise vidéo quand on maintient l'appui.
   useEffect(() => {
@@ -265,34 +283,48 @@ function StoryViewer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupeIndex, itemIndex]);
 
+  function appliquerStyleDrag(y: number) {
+    const el = conteneurRef.current;
+    if (!el) return;
+    if (y <= 0) {
+      el.style.transform = "";
+      el.style.opacity = "1";
+      return;
+    }
+    el.style.transform = `translateY(${y}px) scale(${1 - Math.min(y, 200) / 900})`;
+    el.style.opacity = String(Math.max(0.5, 1 - y / 300));
+  }
+
   function onTouchStart(event: React.TouchEvent) {
     dragStartY.current = event.touches[0]!.clientY;
+    dragYRef.current = 0;
     setEnPause(true);
+    if (conteneurRef.current) conteneurRef.current.style.transition = "none";
   }
   function onTouchMove(event: React.TouchEvent) {
     if (dragStartY.current == null) return;
     const delta = event.touches[0]!.clientY - dragStartY.current;
-    if (delta > 0) setDragY(delta);
+    dragYRef.current = Math.max(0, delta);
+    appliquerStyleDrag(dragYRef.current);
   }
   function onTouchEnd() {
     setEnPause(false);
-    if (dragY > 90) {
+    const el = conteneurRef.current;
+    if (el) el.style.transition = "transform 200ms ease, opacity 200ms ease";
+    if (dragYRef.current > 90) {
       onClose();
       return;
     }
-    setDragY(0);
+    appliquerStyleDrag(0);
     dragStartY.current = null;
+    dragYRef.current = 0;
   }
 
   return (
     <div
+      ref={conteneurRef}
       className="fixed inset-0 z-50 overflow-hidden bg-[oklch(0.12_0.01_255)]"
-      style={{
-        height: "100dvh",
-        transform: dragY ? `translateY(${dragY}px) scale(${1 - Math.min(dragY, 200) / 900})` : undefined,
-        opacity: dragY ? Math.max(0.5, 1 - dragY / 300) : 1,
-        transition: dragY ? "none" : "transform 200ms ease, opacity 200ms ease",
-      }}
+      style={{ height: "100dvh" }}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -315,7 +347,7 @@ function StoryViewer({
             onError={() => setErreurMedia(true)}
             onTimeUpdate={(event) => {
               const video = event.currentTarget;
-              if (video.duration > 0) setProgress((video.currentTime / video.duration) * 100);
+              if (video.duration > 0) setProgressVideo((video.currentTime / video.duration) * 100);
             }}
             onEnded={suivant}
           />
@@ -348,61 +380,56 @@ function StoryViewer({
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-black/80 to-transparent" />
 
       <div className="absolute inset-x-0 top-0">
-      {/* Une barre de progression par promotion DU GROUPE COURANT uniquement. */}
-      <div className="flex gap-1 px-3 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
-
-        {groupe.map((item, i) => (
-          <span key={item.id} className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/25">
-            <span
-              className="block h-full bg-white"
-              style={{
-                width: i < itemIndex ? "100%" : i === itemIndex ? `${progress}%` : "0%",
-                transition: i === itemIndex && promotion.type_media === "video" ? "width 120ms linear" : undefined,
-              }}
+        {/* Une barre de progression par promotion DU GROUPE COURANT uniquement. */}
+        <div className="flex gap-1 px-3 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+          {groupe.map((item, i) => (
+            <SegmentProgression
+              key={item.id}
+              etat={i < itemIndex ? "passe" : i === itemIndex ? "courant" : "a_venir"}
+              dureeMs={promotion.type_media === "video" && i === itemIndex ? null : DUREE_IMAGE_MS}
+              enPause={enPause}
+              progressVideo={progressVideo}
+              onTermine={suivant}
             />
-          </span>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      <div className="flex items-center gap-3 px-4 py-3">
-        {promotion.restaurant_logo ? (
-          <img
-            src={promotion.restaurant_logo}
-            alt=""
-            className="h-9 w-9 rounded-full object-cover ring-2 ring-white/30"
-          />
-        ) : null}
-        <p className="flex-1 truncate text-sm font-bold text-white">{promotion.restaurant_nom}</p>
-        {promotion.type_media === "video" ? (
+        <div className="flex items-center gap-3 px-4 py-3">
+          {promotion.restaurant_logo ? (
+            <img
+              src={promotion.restaurant_logo}
+              alt=""
+              className="h-9 w-9 rounded-full object-cover ring-2 ring-white/30"
+            />
+          ) : null}
+          <p className="flex-1 truncate text-sm font-bold text-white">{promotion.restaurant_nom}</p>
+          {promotion.type_media === "video" ? (
+            <button
+              type="button"
+              onClick={() => setMuet((m) => !m)}
+              aria-label={muet ? "Activer le son" : "Couper le son"}
+              className="tap flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+            >
+              {muet ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            </button>
+          ) : null}
           <button
             type="button"
-            onClick={() => setMuet((m) => !m)}
-            aria-label={muet ? "Activer le son" : "Couper le son"}
+            onClick={onClose}
+            aria-label="Fermer"
             className="tap flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
           >
-            {muet ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            ✕
           </button>
-        ) : null}
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Fermer"
-          className="tap flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
-        >
-          ✕
-        </button>
-      </div>
+        </div>
       </div>
 
       <div className="absolute inset-x-0 bottom-0 space-y-3 px-5 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
         {promotion.description ? (
-          <p className="line-clamp-3 text-[15px] leading-relaxed text-white/90">
-            {promotion.description}
-          </p>
+          <p className="line-clamp-3 text-[15px] leading-relaxed text-white/90">{promotion.description}</p>
         ) : null}
         <PromoAction promotion={promotion} onNavigate={onClose} />
       </div>
     </div>
-
   );
 }

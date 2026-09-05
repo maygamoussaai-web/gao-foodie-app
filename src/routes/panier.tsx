@@ -297,6 +297,9 @@ function ChoixLocalisation({
 }) {
   const [enCours, setEnCours] = useState<"position" | "audio" | null>(null);
   const [precision, setPrecision] = useState<number | null>(null);
+  const [brut, setBrut] = useState<{ lat: number; lng: number } | null>(null);
+  const [carteOuverte, setCarteOuverte] = useState(false);
+  const [ajusteALaMain, setAjusteALaMain] = useState(false);
   const [recording, setRecording] = useState(false);
   const [secondes, setSecondes] = useState(0);
   const [niveaux, setNiveaux] = useState<number[]>(() => Array.from({ length: 28 }, () => 0.08));
@@ -339,12 +342,10 @@ function ChoixLocalisation({
       setEnCours(null);
       if (!meilleure) return;
       const { latitude, longitude, accuracy } = meilleure.coords;
-      onChange({
-        methode: "position",
-        url: `https://maps.google.com/?q=${latitude.toFixed(7)},${longitude.toFixed(7)}`,
-      });
+      setBrut({ lat: latitude, lng: longitude });
       setPrecision(Math.round(accuracy));
-      toast.success(`Position enregistrée (précision ±${Math.round(accuracy)} m)`);
+      setAjusteALaMain(false);
+      setCarteOuverte(true);
     };
 
     const limite = setTimeout(() => {
@@ -479,14 +480,27 @@ function ChoixLocalisation({
                   ? `Affinage du GPS… précision ±${precision} m`
                   : "Recherche du signal GPS…"
                 : value?.methode === "position"
-                  ? precision !== null
-                    ? `Position enregistrée · précision ±${precision} m`
-                    : "Position enregistrée"
-                  : "Le GPS s'affine jusqu'à la précision maximale"}
+                  ? ajusteALaMain
+                    ? "Point placé à la main sur la carte"
+                    : precision !== null
+                      ? `Position enregistrée · ${precision <= 20 ? "précise" : "approximative"} ±${precision} m`
+                      : "Position enregistrée"
+                  : "Vous ajusterez ensuite le point sur une carte"}
             </span>
           </span>
           {value?.methode === "position" ? <Check className="h-5 w-5 text-primary" /> : null}
         </button>
+
+        {value?.methode === "position" && brut ? (
+          <button
+            type="button"
+            onClick={() => setCarteOuverte(true)}
+            className="tap tap-active ml-auto flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12px] font-bold text-muted-foreground hover:border-primary/40 hover:text-foreground"
+          >
+            <MapPin className="h-3.5 w-3.5" />
+            Modifier le point sur la carte
+          </button>
+        ) : null}
 
         <button
           type="button"

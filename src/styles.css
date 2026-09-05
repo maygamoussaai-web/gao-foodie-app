@@ -567,3 +567,17 @@
   }
 }
 
+/* Barre de progression d'une story (voir Stories.tsx) : anime la largeur
+   nativement, `animation-play-state` gère la pause sans JS. */
+@keyframes gf-story-fill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@utility animate-story-fill {
+  animation: gf-story-fill linear forwards;
+}

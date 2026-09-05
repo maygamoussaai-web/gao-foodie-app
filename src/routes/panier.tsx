@@ -342,12 +342,10 @@ function ChoixLocalisation({
       setEnCours(null);
       if (!meilleure) return;
       const { latitude, longitude, accuracy } = meilleure.coords;
-      onChange({
-        methode: "position",
-        url: `https://maps.google.com/?q=${latitude.toFixed(7)},${longitude.toFixed(7)}`,
-      });
+      setBrut({ lat: latitude, lng: longitude });
       setPrecision(Math.round(accuracy));
-      toast.success(`Position enregistrée (précision ±${Math.round(accuracy)} m)`);
+      setAjusteALaMain(false);
+      setCarteOuverte(true);
     };
 
     const limite = setTimeout(() => {

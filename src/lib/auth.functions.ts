@@ -8,6 +8,7 @@ import {
   requireSessionClient,
   startSession,
 } from "./auth.server";
+import { envoyerSms } from "./sms.server";
 import { getDb, hashPin, isLegacyPinHash, needsRehash, verifyPin } from "./supabase.server";
 import type { Client } from "./types";
 
@@ -132,17 +133,24 @@ export const logoutFn = createServerFn({ method: "POST" }).handler(async () => {
   return { ok: true };
 });
 
-/** Génère un code de réinitialisation à 6 chiffres valable 15 minutes. */
+/**
+ * Étape 1 de la réinitialisation : génère un code à 6 chiffres (15 min de
+ * validité) et l'envoie PAR SMS au numéro du compte. Si le service SMS
+ * n'est pas encore configuré côté hébergeur (variables AT_USERNAME /
+ * AT_API_KEY absentes), le code est renvoyé dans `code_debug` pour ne pas
+ * bloquer les tests — il ne l'est plus dès que l'envoi réel fonctionne.
+ */
 export const requestPinResetFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z.object({ numero: z.string().trim().min(8).max(20) }).parse(input),
   )
   .handler(async ({ data }) => {
     const db = getDb();
+    const numero = normalizeNumero(data.numero);
     const { data: client } = await db
       .from("clients")
       .select("id, prenom, nom")
-      .eq("numero", normalizeNumero(data.numero))
+      .eq("numero", numero)
       .maybeSingle();
     if (!client) throw new Error("Aucun compte n'est lié à ce numéro.");
 
@@ -153,10 +161,22 @@ export const requestPinResetFn = createServerFn({ method: "POST" })
       expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
     });
     if (error) throw new Error("Impossible de générer un code pour le moment.");
-    return { prenom: client.prenom as string, nom: client.nom as string };
+
+    const resultat = await envoyerSms(
+      numero,
+      `GAO FOOD : votre code de réinitialisation est ${code}. Valable 15 minutes. Ne le partagez avec personne.`,
+    );
+
+    return {
+      prenom: client.prenom as string,
+      nom: client.nom as string,
+      sms_envoye: resultat.envoye,
+      // Uniquement présent tant que l'envoi SMS réel n'est pas opérationnel.
+      code_debug: resultat.envoye ? undefined : code,
+    };
   });
 
-/** Vérifie le code reçu par WhatsApp puis remplace le code PIN. */
+/** Étape 2 : vérifie le code reçu par SMS puis remplace le code PIN. */
 export const resetPinFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z
@@ -169,10 +189,11 @@ export const resetPinFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const db = getDb();
+    const numero = normalizeNumero(data.numero);
     const { data: client } = await db
       .from("clients")
       .select("id, prenom, nom, numero")
-      .eq("numero", normalizeNumero(data.numero))
+      .eq("numero", numero)
       .maybeSingle();
     if (!client) throw new Error("Aucun compte n'est lié à ce numéro.");
 
@@ -277,59 +298,4 @@ export const confirmPinFn = createServerFn({ method: "POST" })
     const ok = row ? await verifyPin(data.pin, row.code_pin_hash as string) : false;
     if (!ok) throw new Error("Code PIN incorrect.");
     return { ok: true };
-  });
-
-/**
- * Réinitialisation autonome du code PIN, sans WhatsApp : le client prouve son
- * identité (numéro + prénom + nom exactement comme à l'inscription), un code
- * à usage unique est créé puis immédiatement consommé pour tracer l'opération.
- */
-export const resetPinIdentityFn = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) =>
-    z
-      .object({
-        numero: z.string().trim().min(8).max(20),
-        prenom: z.string().trim().min(2).max(50),
-        nom: z.string().trim().min(2).max(50),
-        pin: z.string().regex(/^\d{4,6}$/),
-      })
-      .parse(input),
-  )
-  .handler(async ({ data }) => {
-    const db = getDb();
-    const { data: client } = await db
-      .from("clients")
-      .select("id, prenom, nom, numero")
-      .eq("numero", normalizeNumero(data.numero))
-      .maybeSingle();
-    if (!client) throw new Error("Aucun compte n'est lié à ce numéro.");
-
-    const same = (a: string, b: string) =>
-      a.trim().toLocaleLowerCase("fr") === b.trim().toLocaleLowerCase("fr");
-    if (!same(client.prenom as string, data.prenom) || !same(client.nom as string, data.nom)) {
-      throw new Error("Le prénom et le nom ne correspondent pas à ce numéro.");
-    }
-
-    const code = String(crypto.getRandomValues(new Uint32Array(1))[0]! % 1_000_000).padStart(6, "0");
-    await db.from("codes_reset_client").insert({
-      client_id: client.id,
-      code,
-      utilise: true,
-      expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-    });
-
-    const { error } = await db
-      .from("clients")
-      .update({ code_pin_hash: await hashPin(data.pin) })
-      .eq("id", client.id);
-    if (error) throw new Error("Réinitialisation impossible pour le moment.");
-
-    const token = await startSession(client.id as string);
-    return {
-      id: client.id,
-      prenom: client.prenom,
-      nom: client.nom,
-      numero: client.numero,
-      token,
-    } as Client & { token: string };
   });

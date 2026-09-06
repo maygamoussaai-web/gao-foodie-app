@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { LifeBuoy, LogOut, ShieldCheck, User } from "lucide-react";
+import { LifeBuoy, LogOut, ShieldCheck, User, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { AppShell } from "@/components/gf/AppShell";
 import { PinField } from "@/components/gf/PinField";
@@ -27,6 +28,52 @@ export const Route = createFileRoute("/compte")({
   component: Compte,
 });
 
+/** Boîte de confirmation générique, portée hors de l'arborescence de page. */
+function ConfirmDialog({
+  titre,
+  texte,
+  labelConfirmer,
+  enCours,
+  onConfirmer,
+  onAnnuler,
+}: {
+  titre: string;
+  texte: string;
+  labelConfirmer: string;
+  enCours?: boolean;
+  onConfirmer: () => void;
+  onAnnuler: () => void;
+}) {
+  if (typeof document === "undefined") return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[999] flex items-end justify-center bg-black/50 p-4 sm:items-center">
+      <div className="surface-card animate-rise w-full max-w-sm p-5">
+        <div className="flex items-start justify-between">
+          <h2 className="text-base font-bold">{titre}</h2>
+          <button
+            type="button"
+            onClick={onAnnuler}
+            aria-label="Fermer"
+            className="tap -mt-1 -mr-1 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <p className="mt-2 text-sm text-muted-foreground">{texte}</p>
+        <div className="mt-4 flex gap-2">
+          <Button variant="outline" block onClick={onAnnuler}>
+            Annuler
+          </Button>
+          <Button variant="danger" block loading={enCours} onClick={onConfirmer}>
+            {labelConfirmer}
+          </Button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function Compte() {
   const navigate = useNavigate();
   const session = useSession();
@@ -38,6 +85,7 @@ function Compte() {
   const [ancien, setAncien] = useState("");
   const [nouveau, setNouveau] = useState("");
   const [confirmation, setConfirmation] = useState("");
+  const [confirmerDeconnexion, setConfirmerDeconnexion] = useState(false);
 
   useEffect(() => {
     if (!session.isLoading && !session.data) navigate({ to: "/bienvenue" });
@@ -180,7 +228,7 @@ function Compte() {
             Signaler un problème ({ADMIN_PHONE_DISPLAY})
           </Button>
         </a>
-        <Button variant="danger" block loading={deconnexion.isPending} onClick={() => deconnexion.mutate()}>
+        <Button variant="danger" block onClick={() => setConfirmerDeconnexion(true)}>
           <LogOut className="h-4 w-4" />
           Se déconnecter
         </Button>
@@ -188,6 +236,17 @@ function Compte() {
           Conditions d'utilisation & politique de confidentialité
         </Link>
       </div>
+
+      {confirmerDeconnexion ? (
+        <ConfirmDialog
+          titre="Se déconnecter ?"
+          texte="Vous devrez ressaisir votre numéro et votre code PIN pour vous reconnecter."
+          labelConfirmer="Se déconnecter"
+          enCours={deconnexion.isPending}
+          onConfirmer={() => deconnexion.mutate()}
+          onAnnuler={() => setConfirmerDeconnexion(false)}
+        />
+      ) : null}
     </AppShell>
   );
 }

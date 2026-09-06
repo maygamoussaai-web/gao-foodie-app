@@ -179,10 +179,10 @@ export function StoriesBar({
           itemIndex={ouverture.item}
           onNaviguer={(groupe, item) => {
             setOuverture({ groupe, item });
-            setVues((prev) => new Set(prev).add(groupes[groupe]![item]!.id));
+            marquerVu(groupes[groupe]![item]!.id);
           }}
           onClose={() => setOuverture(null)}
-          onMarquerVu={(id) => setVues((prev) => new Set(prev).add(id))}
+          onMarquerVu={marquerVu}
         />
       ) : null}
     </>

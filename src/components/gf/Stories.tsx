@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronRight, PlayCircle, Sparkles, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Promotion } from "@/lib/types";
 import { Button, Skeleton } from "./ui";
 
@@ -320,10 +321,16 @@ function StoryViewer({
     dragYRef.current = 0;
   }
 
-  return (
+  // Portail vers document.body : la story plein écran doit vivre HORS de
+  // l'arborescence de la page. Sans ça, un ancêtre quelconque (ex. une
+  // animation d'opacité sur <main>) peut créer une "boîte d'empilement"
+  // qui piège même un z-index élevé et fait passer la nav du bas par-dessus.
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <div
       ref={conteneurRef}
-      className="fixed inset-0 z-50 overflow-hidden bg-[oklch(0.12_0.01_255)]"
+      className="fixed inset-0 z-[999] overflow-hidden bg-[oklch(0.12_0.01_255)]"
       style={{ height: "100dvh" }}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
@@ -430,6 +437,7 @@ function StoryViewer({
         ) : null}
         <PromoAction promotion={promotion} onNavigate={onClose} />
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

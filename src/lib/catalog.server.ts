@@ -95,12 +95,15 @@ export async function fetchRestaurantDetail(id: string) {
 export async function fetchPromotions(): Promise<Promotion[]> {
   const db = getDb();
   const nowIso = new Date().toISOString();
+  // Une story vit au maximum 24 h après sa publication.
+  const limite24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const { data } = await db
     .from("promotions")
     .select(
       "id, restaurant_id, media_url, type_media, description, plat_id, boisson_id, expires_at, restaurants(nom, logo_url, statut)",
     )
     .eq("actif", true)
+    .gt("created_at", limite24h)
     .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
     .order("created_at", { ascending: false });
 

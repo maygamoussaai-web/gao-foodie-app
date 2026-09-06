@@ -8,6 +8,9 @@ import { Button, Skeleton } from "./ui";
 /** Durée d'affichage d'une image dans le viewer (les vidéos avancent à leur fin). */
 const DUREE_IMAGE_MS = 5000;
 
+/** Clé locale des stories déjà regardées (anneau gris). */
+const CLE_VUES = "gf_stories_vues";
+
 /** Regroupe les promotions par restaurant, en conservant l'ordre d'apparition. */
 function grouperParRestaurant(promotions: Promotion[]): Promotion[][] {
   const ordreRestaurants: string[] = [];
@@ -76,6 +79,30 @@ export function StoriesBar({
   const groupes = useMemo(() => grouperParRestaurant(promotions), [promotions]);
   const [ouverture, setOuverture] = useState<{ groupe: number; item: number } | null>(null);
   const [vues, setVues] = useState<Set<string>>(new Set());
+
+  // Les stories déjà regardées restent grises même après rechargement.
+  useEffect(() => {
+    try {
+      const brut = localStorage.getItem(CLE_VUES);
+      if (brut) setVues(new Set(JSON.parse(brut) as string[]));
+    } catch {
+      /* stockage indisponible */
+    }
+  }, []);
+
+  function marquerVu(id: string) {
+    setVues((prev) => {
+      if (prev.has(id)) return prev;
+      const suivant = new Set(prev).add(id);
+      try {
+        localStorage.setItem(CLE_VUES, JSON.stringify([...suivant]));
+      } catch {
+        /* stockage indisponible */
+      }
+      return suivant;
+    });
+  }
+
 
   if (loading) {
     return (
@@ -155,10 +182,10 @@ export function StoriesBar({
           itemIndex={ouverture.item}
           onNaviguer={(groupe, item) => {
             setOuverture({ groupe, item });
-            setVues((prev) => new Set(prev).add(groupes[groupe]![item]!.id));
+            marquerVu(groupes[groupe]![item]!.id);
           }}
           onClose={() => setOuverture(null)}
-          onMarquerVu={(id) => setVues((prev) => new Set(prev).add(id))}
+          onMarquerVu={marquerVu}
         />
       ) : null}
     </>

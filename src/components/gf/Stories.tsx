@@ -8,6 +8,9 @@ import { Button, Skeleton } from "./ui";
 /** Durée d'affichage d'une image dans le viewer (les vidéos avancent à leur fin). */
 const DUREE_IMAGE_MS = 5000;
 
+/** Clé locale des stories déjà regardées (anneau gris). */
+const CLE_VUES = "gf_stories_vues";
+
 /** Regroupe les promotions par restaurant, en conservant l'ordre d'apparition. */
 function grouperParRestaurant(promotions: Promotion[]): Promotion[][] {
   const ordreRestaurants: string[] = [];

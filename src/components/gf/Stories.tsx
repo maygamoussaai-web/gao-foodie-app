@@ -77,6 +77,30 @@ export function StoriesBar({
   const [ouverture, setOuverture] = useState<{ groupe: number; item: number } | null>(null);
   const [vues, setVues] = useState<Set<string>>(new Set());
 
+  // Les stories déjà regardées restent grises même après rechargement.
+  useEffect(() => {
+    try {
+      const brut = localStorage.getItem(CLE_VUES);
+      if (brut) setVues(new Set(JSON.parse(brut) as string[]));
+    } catch {
+      /* stockage indisponible */
+    }
+  }, []);
+
+  function marquerVu(id: string) {
+    setVues((prev) => {
+      if (prev.has(id)) return prev;
+      const suivant = new Set(prev).add(id);
+      try {
+        localStorage.setItem(CLE_VUES, JSON.stringify([...suivant]));
+      } catch {
+        /* stockage indisponible */
+      }
+      return suivant;
+    });
+  }
+
+
   if (loading) {
     return (
       <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-1">
